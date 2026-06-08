@@ -190,88 +190,91 @@ Table~\ref{tab:comparison} positions AES-RARR relative to prior work.
 \centering
 \caption{Comparison Matrix of UAV Maritime SAR Frameworks.}
 \label{tab:comparison}
-\scriptsize
-\setlength{\tabcolsep}{2.5pt}
-\begin{tabularx}{\textwidth}{@{} L{1.2} C{0.9} C{0.9} C{0.7} C{1.0} C{0.8} C{1.0} C{0.7} C{0.8} L{2.0} @{}}
+\small
+\setlength{\tabcolsep}{6pt}
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\textwidth}{@{} lccccccccX @{}}
 \toprule
-\makecell[l]{\textbf{System}} 
-  & \makecell[c]{\textbf{Detection}} 
-  & \makecell[c]{\textbf{Tracking}} 
-  & \makecell[c]{\textbf{Posture}} 
-  & \makecell[c]{\textbf{Uncertainty}} 
-  & \makecell[c]{\textbf{Active} \\ \textbf{Sensing}} 
-  & \makecell[c]{\textbf{Rescue} \\ \textbf{Routing}} 
-  & \makecell[c]{\textbf{Occlusion} \\ \textbf{Handling}} 
-  & \makecell[c]{\textbf{Evaluation}} 
-  & \makecell[l]{\textbf{Key Limitation}} \\
+\textbf{System} & \textbf{Det.} & \textbf{Trk.} & \textbf{Pst.} & \textbf{Unc.} & \textbf{Act.} & \textbf{Rt.} & \textbf{Occ.} & \textbf{Eval.} & \textbf{Key Limitation} \\
 \midrule
 SeaDronesSee~\cite{ref3} 
-  & \makecell[c]{RGB CNN} 
+  & RGB 
   & MOT 
   & $\times$ 
   & $\times$ 
   & $\times$ 
   & $\times$ 
   & $\times$ 
-  & \makecell[c]{Real \\ Aerial} 
-  & Offline benchmark; no routing \\
+  & Real 
+  & Offline benchmark; no routing. \\
 \addlinespace
 AutoSOS~\cite{ref11} 
-  & \makecell[c]{CNN \\ Onboard} 
+  & Onb. 
   & $\times$ 
   & $\times$ 
   & $\times$ 
-  & \makecell[c]{Yes \\ (Concept)} 
-  & \makecell[c]{Operator- \\ based} 
+  & Concept 
+  & Op. 
   & $\times$ 
-  & \makecell[c]{Sim / \\ Concept} 
-  & No tracking; no VSR metrics \\
+  & Sim 
+  & No tracking; no survival metrics. \\
 \addlinespace
 Messmer et al.~\cite{ref5} 
   & YOLOv8 
   & $\times$ 
   & $\times$ 
   & $\times$ 
-  & \makecell[c]{RoI \\ Proposals} 
-  & \makecell[c]{Bandwidth- \\ driven} 
+  & RoI 
+  & Bwd. 
   & $\times$ 
-  & \makecell[c]{Real + \\ Sim} 
-  & No posture; no rescue routing \\
+  & R+S 
+  & No posture; no rescue routing. \\
 \addlinespace
 Messmer \& Zell~\cite{ref12} 
   & $\times$ 
-  & \makecell[c]{Drift- \\ based} 
+  & Drift 
   & $\times$ 
-  & Spatial 
+  & Spat. 
   & $\times$ 
   & $\times$ 
   & $\times$ 
-  & Sim Only 
-  & No vision; binary victim model \\
+  & Sim 
+  & No vision; binary victim model. \\
 \addlinespace
 Ngo et al.~\cite{ref4} 
-  & \makecell[c]{RGB-T \\ CNN} 
-  & ByteTrack 
-  & \makecell[c]{Swim / \\ Drown} 
-  & \makecell[c]{$\times$ \\ (Softmax)} 
-  & \makecell[c]{Flight \\ Control} 
-  & \makecell[c]{Expected- \\ risk} 
+  & RGB-T 
+  & BT 
+  & S/D 
+  & SM 
+  & FC 
+  & Exp. 
   & $\times$ 
-  & \makecell[c]{Custom \\ Video} 
-  & Uncertainty-blind; static measures \\
+  & Video 
+  & Uncertainty-blind; static measures. \\
 \midrule
 \textbf{AES-RARR (Ours)} 
-  & \makecell[c]{EDL \\ Dirichlet} 
-  & \makecell[c]{Kalman + \\ Drift} 
-  & 4 States 
-  & \makecell[c]{Epistemic + \\ Aleatoric} 
-  & Triggered 
-  & \makecell[c]{Risk-Averse \\ (RAP)} 
-  & \makecell[c]{Active \\ Descent} 
-  & \makecell[c]{Monte \\ Carlo} 
-  & Evaluated via simulation proxy \\
+  & EDL 
+  & KF+D 
+  & 4S 
+  & E+A 
+  & Trig. 
+  & RAP 
+  & Desc. 
+  & MC 
+  & Evaluated via simulation proxy. \\
 \bottomrule
 \end{tabularx}
+\smallskip
+\scriptsize
+\textbf{Legend:} 
+\textbf{Det.} (Detection Model): RGB, Onb. (Onboard CNN), YOLOv8, RGB-T (RGB-Thermal), EDL (Evidential). 
+\textbf{Trk.} (Tracking Method): MOT, Drift (Drift-based), BT (ByteTrack), KF+D (Kalman Filter + Drift). 
+\textbf{Pst.} (Posture Classification): S/D (Swimming/Drowning), 4S (4 distress states). 
+\textbf{Unc.} (Uncertainty Estimation): Spat. (Spatial only), SM (Softmax), E+A (Epistemic + Aleatoric). 
+\textbf{Act.} (Active Sensing Trajectory): RoI (Region-of-Interest), FC (Flight Control loop), Trig. (Uncertainty-Triggered). 
+\textbf{Rt.} (Prioritization/Routing): Op. (Operator-based), Bwd. (Bandwidth-driven), Exp. (Expected-risk), RAP (Risk-Averse Priority). 
+\textbf{Occ.} (Occlusion Handling): Desc. (Active descent). 
+\textbf{Eval.} (Evaluation Type): Real, Sim (Simulation), R+S (Real + Sim), Video (Custom video), MC (Monte Carlo).
 \end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
