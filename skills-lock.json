@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "academic-paper": {
+      "source": "imbad0202/academic-research-skills",
+      "sourceType": "github",
+      "skillPath": "academic-paper/SKILL.md",
+      "computedHash": "6c72e519fb2bcc51709b13fedf98419e8e0bac9a6f8f432a79d6beffb66e62ef"
+    }
+  }
+}

@@ -19,6 +19,10 @@
 \usepackage{tabularx}
 \usepackage{makecell}
 
+% Custom column types for tabularx with relative width allocation
+\newcolumntype{L}[1]{>{\hsize=#1\hsize\raggedright\arraybackslash}X}
+\newcolumntype{C}[1]{>{\hsize=#1\hsize\centering\arraybackslash}X}
+
 \title{\textbf{Active Evidential Sensing for Occlusion-Robust Maritime Search and Rescue: A Simulation Study}}
 
 \author{
@@ -186,8 +190,9 @@ Table~\ref{tab:comparison} positions AES-RARR relative to prior work.
 \centering
 \caption{Comparison Matrix of UAV Maritime SAR Frameworks.}
 \label{tab:comparison}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccccc}
+\scriptsize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabularx}{\textwidth}{@{} L{1.1} C{0.8} C{0.8} C{0.7} C{0.9} C{0.8} C{1.0} C{0.8} C{0.8} L{2.3} @{}}
 \toprule
 \textbf{System} & \textbf{Detection} & \textbf{Tracking} & \textbf{Posture} & \textbf{Uncertainty} & \textbf{Active Sens.} & \textbf{Prioritization} & \textbf{Occlusion} & \textbf{Evaluation} & \textbf{Key Limitation} \\
 \midrule
@@ -203,8 +208,7 @@ Ngo et al.~\cite{ref4} & RGB-T CNN & ByteTrack & Swimming/Drowning & $\times$ (S
 \midrule
 \textbf{AES-RARR (Ours)} & EDL Dirichlet & Kalman + Drift & 4 States & Epistemic+Aleatoric & Triggered & Risk-Averse (RAP) & Active Descent & Monte Carlo & Evaluated via simulation proxy \\
 \bottomrule
-\end{tabular}%
-}
+\end{tabularx}
 \end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -495,9 +499,8 @@ Table~\ref{tab:q3} summarises results from 100 Monte Carlo trials with $N = 3$ v
 \caption{Simulation Results: 100 Monte Carlo trials, $N = 3$ victims, 30\% initial occlusion. Metrics are reported as mean $\pm$ standard deviation (where applicable). Bold indicates the best result for each metric.}
 \label{tab:q3}
 \small
-\setlength{\tabcolsep}{8pt}
 \renewcommand{\arraystretch}{1.1}
-\begin{tabular}{lcccccc}
+\begin{tabularx}{\textwidth}{@{} L{1.6} C{0.9} C{0.9} C{0.8} C{0.8} C{1.0} C{1.0} @{}}
 \toprule
 \textbf{System}
   & \makecell{\textbf{Worst VSR} \\ ($\uparrow$)}
@@ -508,12 +511,16 @@ Table~\ref{tab:q3} summarises results from 100 Monte Carlo trials with $N = 3$ v
   & \makecell{\textbf{Branch} \\ \textbf{Precision}} \\
 \midrule
 AES-RARR (Full)      & \textbf{0.52 $\pm$ 0.08} & 0.61 $\pm$ 0.05          & \textbf{0.04} & \textbf{0.06} & 6.8 $\pm$ 1.9 & \textbf{0.89 $\pm$ 0.07} \\
+\addlinespace
 AES-RARR (No Branch) & 0.35 $\pm$ 0.10          & 0.63 $\pm$ 0.06          & 0.08          & 0.38          & 0             & ---                      \\
+\addlinespace
 AES-RARR (Static R)  & 0.48 $\pm$ 0.09          & 0.60 $\pm$ 0.05          & 0.06          & 0.12          & 6.5 $\pm$ 2.1 & 0.85 $\pm$ 0.09          \\
+\addlinespace
 Deterministic        & 0.30 $\pm$ 0.11          & \textbf{0.65 $\pm$ 0.05} & 0.10          & 0.52          & 0             & ---                      \\
+\addlinespace
 Distance Router      & 0.41 $\pm$ 0.12          & 0.62 $\pm$ 0.06          & 0.09          & 0.24          & 0             & ---                      \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{table}
 
 \textbf{RQ1: Active Sensing Performance.}
