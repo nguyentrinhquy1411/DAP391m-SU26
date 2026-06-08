@@ -1,0 +1,40 @@
+============================================================
+SEA-DRONES-SEE EXPLORATORY DATA ANALYSIS (EDA) REPORT
+============================================================
+Total Frames analyzed: 200
+Total Annotated Instances: 625
+Average target density: 3.12 targets/image
+
+1. Category Distribution:
+------------------------------
+  * swimmer        : 246    (39.36%)
+  * floater        : 197    (31.52%)
+  * boat           : 95     (15.20%)
+  * life jacket    : 60     (9.60%)
+  * buoy           : 27     (4.32%)
+
+2. Target Spatial Scale Metrics:
+------------------------------
+  * Average BBox Area : 2077.6 px^2
+  * Median BBox Area  : 673.3 px^2
+  * Smallest target   : 24.2 px^2
+  * Largest target    : 38646.4 px^2
+  * Average Width     : 34.8 px
+  * Average Height    : 34.8 px
+  * Mean Aspect Ratio : 1.02
+  * COCO Scale Distribution:
+    - Small (area < 1024 px^2)    : 374   (59.8%)
+    - Medium (1024 <= area < 9216): 212   (33.9%)
+    - Large (area >= 9216 px^2)   : 39    (6.2%)
+
+3. UAV Telemetry Analysis:
+------------------------------
+  * Altitude (Alt) stats (m):
+    - Mean   : 89.70m
+    - Min    : 10.00m
+    - Max    : 240.00m
+  * Gimbal Pitch stats (degrees, 90 = nadir):
+    - Mean   : 54.39 deg
+    - Min    : 20.37 deg
+    - Max    : 89.77 deg
+============================================================
