@@ -191,13 +191,13 @@ Table~\ref{tab:comparison} positions AES-RARR relative to prior work.
 \caption{Comparison Matrix of UAV Maritime SAR Frameworks.}
 \label{tab:comparison}
 \small
-\setlength{\tabcolsep}{6pt}
+\setlength{\tabcolsep}{3.5pt}
 \renewcommand{\arraystretch}{1.1}
 \begin{tabularx}{\textwidth}{@{} lccccccccX @{}}
 \toprule
 \textbf{System} & \textbf{Det.} & \textbf{Trk.} & \textbf{Pst.} & \textbf{Unc.} & \textbf{Act.} & \textbf{Rt.} & \textbf{Occ.} & \textbf{Eval.} & \textbf{Key Limitation} \\
 \midrule
-SeaDronesSee~\cite{ref3} 
+SDS~\cite{ref3} 
   & RGB 
   & MOT 
   & $\times$ 
@@ -219,7 +219,7 @@ AutoSOS~\cite{ref11}
   & Sim 
   & No tracking; no survival metrics. \\
 \addlinespace
-Messmer et al.~\cite{ref5} 
+Messmer~\cite{ref5} 
   & YOLOv8 
   & $\times$ 
   & $\times$ 
@@ -230,7 +230,7 @@ Messmer et al.~\cite{ref5}
   & R+S 
   & No posture; no rescue routing. \\
 \addlinespace
-Messmer \& Zell~\cite{ref12} 
+M\&Z~\cite{ref12} 
   & $\times$ 
   & Drift 
   & $\times$ 
@@ -241,7 +241,7 @@ Messmer \& Zell~\cite{ref12}
   & Sim 
   & No vision; binary victim model. \\
 \addlinespace
-Ngo et al.~\cite{ref4} 
+Ngo~\cite{ref4} 
   & RGB-T 
   & BT 
   & S/D 
@@ -267,13 +267,14 @@ Ngo et al.~\cite{ref4}
 \smallskip
 \scriptsize
 \textbf{Legend:} 
-\textbf{Det.} (Detection Model): RGB, Onb. (Onboard CNN), YOLOv8, RGB-T (RGB-Thermal), EDL (Evidential). 
-\textbf{Trk.} (Tracking Method): MOT, Drift (Drift-based), BT (ByteTrack), KF+D (Kalman Filter + Drift). 
-\textbf{Pst.} (Posture Classification): S/D (Swimming/Drowning), 4S (4 distress states). 
-\textbf{Unc.} (Uncertainty Estimation): Spat. (Spatial only), SM (Softmax), E+A (Epistemic + Aleatoric). 
-\textbf{Act.} (Active Sensing Trajectory): RoI (Region-of-Interest), FC (Flight Control loop), Trig. (Uncertainty-Triggered). 
-\textbf{Rt.} (Prioritization/Routing): Op. (Operator-based), Bwd. (Bandwidth-driven), Exp. (Expected-risk), RAP (Risk-Averse Priority). 
-\textbf{Occ.} (Occlusion Handling): Desc. (Active descent). 
+\textbf{SDS}: SeaDronesSee; \textbf{M\&Z}: Messmer \& Zell. \\
+\textbf{Det.} (Detection Model): RGB, Onb. (Onboard CNN), YOLOv8, RGB-T (RGB-Thermal), EDL (Evidential). \\
+\textbf{Trk.} (Tracking Method): MOT, Drift (Drift-based), BT (ByteTrack), KF+D (Kalman Filter + Drift). \\
+\textbf{Pst.} (Posture Classification): S/D (Swimming/Drowning), 4S (4 distress states). \\
+\textbf{Unc.} (Uncertainty Estimation): Spat. (Spatial only), SM (Softmax), E+A (Epistemic + Aleatoric). \\
+\textbf{Act.} (Active Sensing Trajectory): RoI (Region-of-Interest), FC (Flight Control loop), Trig. (Uncertainty-Triggered). \\
+\textbf{Rt.} (Prioritization/Routing): Op. (Operator-based), Bwd. (Bandwidth-driven), Exp. (Expected-risk), RAP (Risk-Averse Priority). \\
+\textbf{Occ.} (Occlusion Handling): Desc. (Active descent). \\
 \textbf{Eval.} (Evaluation Type): Real, Sim (Simulation), R+S (Real + Sim), Video (Custom video), MC (Monte Carlo).
 \end{table}
 
