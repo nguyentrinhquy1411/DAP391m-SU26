@@ -16,6 +16,8 @@
 \usepackage{algpseudocode}
 \usepackage{xcolor}
 \usepackage{multirow}
+\usepackage{tabularx}
+\usepackage{makecell}
 
 \title{\textbf{Active Evidential Sensing for Occlusion-Robust Maritime Search and Rescue: A Simulation Study}}
 
@@ -180,24 +182,29 @@ However, these algorithms plan paths to \emph{locate} targets; they do not
 
 Table~\ref{tab:comparison} positions AES-RARR relative to prior work.
 
-\begin{table}[htbp]
+\begin{table}[t!]
 \centering
 \caption{Comparison Matrix of UAV Maritime SAR Frameworks.}
 \label{tab:comparison}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccccc}
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabularx}{\textwidth}{lccccccccX}
 \toprule
-\textbf{System} & \textbf{Detection} & \textbf{Tracking} & \textbf{Posture/Distress} & \textbf{Uncertainty} & \textbf{Active Sensing} & \textbf{Prioritization} & \textbf{Occlusion Handling} & \textbf{Evaluation} & \textbf{Main Limitation} \\
+\textbf{System} & \textbf{Detection} & \textbf{Tracking} & \textbf{Posture} & \textbf{Uncertainty} & \textbf{Active Sens.} & \textbf{Prioritization} & \textbf{Occlusion} & \textbf{Evaluation} & \textbf{Key Limitation} \\
 \midrule
-SeaDronesSee \cite{ref3} & RGB CNN & MOT & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ & Real Aerial Data & Offline benchmark, no routing \\
-AutoSOS \cite{ref11} & CNN Onboard & $\times$ & $\times$ & $\times$ & Yes (Conceptual) & Operator-based & $\times$ & Simulation/Concept & No tracking, no VSR metrics \\
-Messmer et al. \cite{ref5} & YOLOv8 & $\times$ & $\times$ & $\times$ & RoI Proposals & Bandwidth-driven & $\times$ & Real Video + Sim & No posture, no rescue routing \\
-Messmer \& Zell \cite{ref12} & $\times$ & Drift-based & $\times$ & Spatial Only & $\times$ & $\times$ & $\times$ & Simulation Only & No vision, binary victim model \\
-Ngo et al. \cite{ref4} & Dual-stream RGB-T & ByteTrack & Drowning/Swimming & $\times$ (Softmax) & Flight Control Loop & Expected-risk & $\times$ & Custom Video & Uncertainty-blind, no scheduling \\
+SeaDronesSee~\cite{ref3} & RGB CNN & MOT & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ & Real Aerial & Offline benchmark; no routing \\
+\addlinespace
+AutoSOS~\cite{ref11} & CNN Onboard & $\times$ & $\times$ & $\times$ & Yes (Concept) & Operator-based & $\times$ & Sim/Concept & No tracking; no VSR metrics \\
+\addlinespace
+Messmer et al.~\cite{ref5} & YOLOv8 & $\times$ & $\times$ & $\times$ & RoI Proposals & Bandwidth-driven & $\times$ & Real + Sim & No posture; no rescue routing \\
+\addlinespace
+Messmer \& Zell~\cite{ref12} & $\times$ & Drift-based & $\times$ & Spatial & $\times$ & $\times$ & $\times$ & Sim Only & No vision; binary victim model \\
+\addlinespace
+Ngo et al.~\cite{ref4} & RGB-T CNN & ByteTrack & Swimming/Drowning & $\times$ (Softmax) & Flight Control & Expected-risk & $\times$ & Custom Video & Uncertainty-blind; static measures \\
 \midrule
-\textbf{AES-RARR (Ours)} & EDL Dirichlet (Sim) & Kalman + Current & 4 Distress States & Epistemic + Aleatoric & Uncertainty-Triggered & Risk-Averse (RAP) & Active Descent & Monte Carlo Sim & Simulated posture oracle \\
+\textbf{AES-RARR (Ours)} & EDL Dirichlet & Kalman + Drift & 4 States & Epistemic+Aleatoric & Triggered & Risk-Averse (RAP) & Active Descent & Monte Carlo & Evaluated via simulation proxy \\
 \bottomrule
-\end{tabular}}
+\end{tabularx}
 \end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -483,26 +490,28 @@ Survival rate for victim $i$ follows: $\operatorname{VSR}_i = \exp(-\eta_i \cdot
 
 Table~\ref{tab:q3} summarises results from 100 Monte Carlo trials with $N = 3$ victims.
 
-\begin{table}[htbp]
+\begin{table}[t!]
 \centering
-\caption{Simulation Results: 100 Monte Carlo trials, $N = 3$ victims, 30\% initial occlusion. All values reported as mean $\pm$ std (except rate metrics). \textbf{Bold} indicates best performance.}
+\caption{Simulation Results: 100 Monte Carlo trials, $N = 3$ victims, 30\% initial occlusion. Metrics are reported as mean $\pm$ standard deviation (where applicable). Bold indicates the best result for each metric.}
 \label{tab:q3}
-\setlength{\tabcolsep}{4pt}
+\small
+\setlength{\tabcolsep}{8pt}
+\renewcommand{\arraystretch}{1.1}
 \begin{tabular}{lcccccc}
 \toprule
 \textbf{System}
-  & \textbf{Worst VSR $\uparrow$}
-  & \textbf{Mean VSR}
-  & \textbf{RFR $\downarrow$}
-  & \textbf{CFR $\downarrow$}
-  & \textbf{Branch Events}
-  & \textbf{Branch Prec.} \\
+  & \makecell{\textbf{Worst VSR} \\ ($\uparrow$)}
+  & \makecell{\textbf{Mean VSR} \\ ($\uparrow$)}
+  & \makecell{\textbf{RFR} \\ ($\downarrow$)}
+  & \makecell{\textbf{CFR} \\ ($\downarrow$)}
+  & \makecell{\textbf{Branch} \\ \textbf{Events}}
+  & \makecell{\textbf{Branch} \\ \textbf{Precision}} \\
 \midrule
-AES-RARR (Full)    & \textbf{0.52 $\pm$ 0.08} & 0.61 $\pm$ 0.05 & \textbf{0.04} & \textbf{0.06} & 6.8 $\pm$ 1.9 & \textbf{0.89 $\pm$ 0.07} \\
-AES-RARR (No Branch) & 0.35 $\pm$ 0.10 & 0.63 $\pm$ 0.06 & 0.08 & 0.38 & 0 & --- \\
-AES-RARR (Static R)  & 0.48 $\pm$ 0.09 & 0.60 $\pm$ 0.05 & 0.06 & 0.12 & 6.5 $\pm$ 2.1 & 0.85 $\pm$ 0.09 \\
-Deterministic        & 0.30 $\pm$ 0.11 & \textbf{0.65 $\pm$ 0.05} & 0.10 & 0.52 & 0 & --- \\
-Distance Router      & 0.41 $\pm$ 0.12 & 0.62 $\pm$ 0.06 & 0.09 & 0.24 & 0 & --- \\
+AES-RARR (Full)      & \textbf{0.52 $\pm$ 0.08} & 0.61 $\pm$ 0.05          & \textbf{0.04} & \textbf{0.06} & 6.8 $\pm$ 1.9 & \textbf{0.89 $\pm$ 0.07} \\
+AES-RARR (No Branch) & 0.35 $\pm$ 0.10          & 0.63 $\pm$ 0.06          & 0.08          & 0.38          & 0             & ---                      \\
+AES-RARR (Static R)  & 0.48 $\pm$ 0.09          & 0.60 $\pm$ 0.05          & 0.06          & 0.12          & 6.5 $\pm$ 2.1 & 0.85 $\pm$ 0.09          \\
+Deterministic        & 0.30 $\pm$ 0.11          & \textbf{0.65 $\pm$ 0.05} & 0.10          & 0.52          & 0             & ---                      \\
+Distance Router      & 0.41 $\pm$ 0.12          & 0.62 $\pm$ 0.06          & 0.09          & 0.24          & 0             & ---                      \\
 \bottomrule
 \end{tabular}
 \end{table}
