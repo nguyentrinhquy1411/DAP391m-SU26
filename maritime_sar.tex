@@ -192,21 +192,84 @@ Table~\ref{tab:comparison} positions AES-RARR relative to prior work.
 \label{tab:comparison}
 \scriptsize
 \setlength{\tabcolsep}{2.5pt}
-\begin{tabularx}{\textwidth}{@{} L{1.1} C{0.8} C{0.8} C{0.7} C{0.9} C{0.8} C{1.0} C{0.8} C{0.8} L{2.3} @{}}
+\begin{tabularx}{\textwidth}{@{} L{1.2} C{0.9} C{0.9} C{0.7} C{1.0} C{0.8} C{1.0} C{0.7} C{0.8} L{2.0} @{}}
 \toprule
-\textbf{System} & \textbf{Detection} & \textbf{Tracking} & \textbf{Posture} & \textbf{Uncertainty} & \textbf{Active Sens.} & \textbf{Prioritization} & \textbf{Occlusion} & \textbf{Evaluation} & \textbf{Key Limitation} \\
+\makecell[l]{\textbf{System}} 
+  & \makecell[c]{\textbf{Detection}} 
+  & \makecell[c]{\textbf{Tracking}} 
+  & \makecell[c]{\textbf{Posture}} 
+  & \makecell[c]{\textbf{Uncertainty}} 
+  & \makecell[c]{\textbf{Active} \\ \textbf{Sensing}} 
+  & \makecell[c]{\textbf{Rescue} \\ \textbf{Routing}} 
+  & \makecell[c]{\textbf{Occlusion} \\ \textbf{Handling}} 
+  & \makecell[c]{\textbf{Evaluation}} 
+  & \makecell[l]{\textbf{Key Limitation}} \\
 \midrule
-SeaDronesSee~\cite{ref3} & RGB CNN & MOT & $\times$ & $\times$ & $\times$ & $\times$ & $\times$ & Real Aerial & Offline benchmark; no routing \\
+SeaDronesSee~\cite{ref3} 
+  & \makecell[c]{RGB CNN} 
+  & MOT 
+  & $\times$ 
+  & $\times$ 
+  & $\times$ 
+  & $\times$ 
+  & $\times$ 
+  & \makecell[c]{Real \\ Aerial} 
+  & Offline benchmark; no routing \\
 \addlinespace
-AutoSOS~\cite{ref11} & CNN Onboard & $\times$ & $\times$ & $\times$ & Yes (Concept) & Operator-based & $\times$ & Sim/Concept & No tracking; no VSR metrics \\
+AutoSOS~\cite{ref11} 
+  & \makecell[c]{CNN \\ Onboard} 
+  & $\times$ 
+  & $\times$ 
+  & $\times$ 
+  & \makecell[c]{Yes \\ (Concept)} 
+  & \makecell[c]{Operator- \\ based} 
+  & $\times$ 
+  & \makecell[c]{Sim / \\ Concept} 
+  & No tracking; no VSR metrics \\
 \addlinespace
-Messmer et al.~\cite{ref5} & YOLOv8 & $\times$ & $\times$ & $\times$ & RoI Proposals & Bandwidth-driven & $\times$ & Real + Sim & No posture; no rescue routing \\
+Messmer et al.~\cite{ref5} 
+  & YOLOv8 
+  & $\times$ 
+  & $\times$ 
+  & $\times$ 
+  & \makecell[c]{RoI \\ Proposals} 
+  & \makecell[c]{Bandwidth- \\ driven} 
+  & $\times$ 
+  & \makecell[c]{Real + \\ Sim} 
+  & No posture; no rescue routing \\
 \addlinespace
-Messmer \& Zell~\cite{ref12} & $\times$ & Drift-based & $\times$ & Spatial & $\times$ & $\times$ & $\times$ & Sim Only & No vision; binary victim model \\
+Messmer \& Zell~\cite{ref12} 
+  & $\times$ 
+  & \makecell[c]{Drift- \\ based} 
+  & $\times$ 
+  & Spatial 
+  & $\times$ 
+  & $\times$ 
+  & $\times$ 
+  & Sim Only 
+  & No vision; binary victim model \\
 \addlinespace
-Ngo et al.~\cite{ref4} & RGB-T CNN & ByteTrack & Swimming/Drowning & $\times$ (Softmax) & Flight Control & Expected-risk & $\times$ & Custom Video & Uncertainty-blind; static measures \\
+Ngo et al.~\cite{ref4} 
+  & \makecell[c]{RGB-T \\ CNN} 
+  & ByteTrack 
+  & \makecell[c]{Swim / \\ Drown} 
+  & \makecell[c]{$\times$ \\ (Softmax)} 
+  & \makecell[c]{Flight \\ Control} 
+  & \makecell[c]{Expected- \\ risk} 
+  & $\times$ 
+  & \makecell[c]{Custom \\ Video} 
+  & Uncertainty-blind; static measures \\
 \midrule
-\textbf{AES-RARR (Ours)} & EDL Dirichlet & Kalman + Drift & 4 States & Epistemic+Aleatoric & Triggered & Risk-Averse (RAP) & Active Descent & Monte Carlo & Evaluated via simulation proxy \\
+\textbf{AES-RARR (Ours)} 
+  & \makecell[c]{EDL \\ Dirichlet} 
+  & \makecell[c]{Kalman + \\ Drift} 
+  & 4 States 
+  & \makecell[c]{Epistemic + \\ Aleatoric} 
+  & Triggered 
+  & \makecell[c]{Risk-Averse \\ (RAP)} 
+  & \makecell[c]{Active \\ Descent} 
+  & \makecell[c]{Monte \\ Carlo} 
+  & Evaluated via simulation proxy \\
 \bottomrule
 \end{tabularx}
 \end{table}
