@@ -186,9 +186,8 @@ Table~\ref{tab:comparison} positions AES-RARR relative to prior work.
 \centering
 \caption{Comparison Matrix of UAV Maritime SAR Frameworks.}
 \label{tab:comparison}
-\scriptsize
-\setlength{\tabcolsep}{2pt}
-\begin{tabularx}{\textwidth}{lccccccccX}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccccccc}
 \toprule
 \textbf{System} & \textbf{Detection} & \textbf{Tracking} & \textbf{Posture} & \textbf{Uncertainty} & \textbf{Active Sens.} & \textbf{Prioritization} & \textbf{Occlusion} & \textbf{Evaluation} & \textbf{Key Limitation} \\
 \midrule
@@ -204,7 +203,8 @@ Ngo et al.~\cite{ref4} & RGB-T CNN & ByteTrack & Swimming/Drowning & $\times$ (S
 \midrule
 \textbf{AES-RARR (Ours)} & EDL Dirichlet & Kalman + Drift & 4 States & Epistemic+Aleatoric & Triggered & Risk-Averse (RAP) & Active Descent & Monte Carlo & Evaluated via simulation proxy \\
 \bottomrule
-\end{tabularx}
+\end{tabular}%
+}
 \end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
