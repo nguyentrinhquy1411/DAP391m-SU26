@@ -83,6 +83,21 @@ def load_actual_dataset():
     print("\n" + "="*80)
     print("KAGGLEHUB DATASET LOADING & PARSING")
     print("="*80)
+    
+    # Check standard local paths first
+    local_paths = [
+        "./archive/compressed/annotations/instances_val.json",
+        "./archive/annotations/instances_val.json",
+        "./sds-dataset/annotations/instances_val.json"
+    ]
+    for path in local_paths:
+        if os.path.exists(path):
+            json_path = os.path.abspath(path)
+            print(f"Found local SeaDronesSee dataset annotations at: {json_path}")
+            print(f"Parsing COCO metadata from: {json_path}")
+            with open(json_path, 'r') as f:
+                return json.load(f)
+
     try:
         import kagglehub
         print(f"1. Downloading dataset '{DATASET_ID}' via kagglehub...")

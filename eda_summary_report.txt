@@ -1,40 +1,40 @@
 ============================================================
 SEA-DRONES-SEE EXPLORATORY DATA ANALYSIS (EDA) REPORT
 ============================================================
-Total Frames analyzed: 200
-Total Annotated Instances: 625
-Average target density: 3.12 targets/image
+Total Frames analyzed: 1547
+Total Annotated Instances: 9630
+Average target density: 6.22 targets/image
 
 1. Category Distribution:
 ------------------------------
-  * swimmer        : 246    (39.36%)
-  * floater        : 197    (31.52%)
-  * boat           : 95     (15.20%)
-  * life jacket    : 60     (9.60%)
-  * buoy           : 27     (4.32%)
+  * swimmer        : 6206   (64.44%)
+  * boat           : 2214   (22.99%)
+  * buoy           : 560    (5.82%)
+  * life_saving_appliances: 330    (3.43%)
+  * jetski         : 320    (3.32%)
 
 2. Target Spatial Scale Metrics:
 ------------------------------
-  * Average BBox Area : 2077.6 px^2
-  * Median BBox Area  : 673.3 px^2
-  * Smallest target   : 24.2 px^2
-  * Largest target    : 38646.4 px^2
-  * Average Width     : 34.8 px
-  * Average Height    : 34.8 px
-  * Mean Aspect Ratio : 1.02
+  * Average BBox Area : 9471.2 px^2
+  * Median BBox Area  : 1700.0 px^2
+  * Smallest target   : 100.0 px^2
+  * Largest target    : 1034176.0 px^2
+  * Average Width     : 74.9 px
+  * Average Height    : 61.0 px
+  * Mean Aspect Ratio : 1.31
   * COCO Scale Distribution:
-    - Small (area < 1024 px^2)    : 374   (59.8%)
-    - Medium (1024 <= area < 9216): 212   (33.9%)
-    - Large (area >= 9216 px^2)   : 39    (6.2%)
+    - Small (area < 1024 px^2)    : 2966  (30.8%)
+    - Medium (1024 <= area < 9216): 4796  (49.8%)
+    - Large (area >= 9216 px^2)   : 1868  (19.4%)
 
 3. UAV Telemetry Analysis:
 ------------------------------
   * Altitude (Alt) stats (m):
-    - Mean   : 89.70m
-    - Min    : 10.00m
-    - Max    : 240.00m
+    - Mean   : 38.10m
+    - Min    : 4.90m
+    - Max    : 131.99m
   * Gimbal Pitch stats (degrees, 90 = nadir):
-    - Mean   : 54.39 deg
-    - Min    : 20.37 deg
-    - Max    : 89.77 deg
+    - Mean   : 37.69 deg
+    - Min    : -0.00 deg
+    - Max    : 90.00 deg
 ============================================================

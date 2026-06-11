@@ -3,7 +3,18 @@ import json
 import numpy as np
 
 # Configurations
+local_paths = [
+    "./archive/compressed/annotations/instances_val.json",
+    "./archive/annotations/instances_val.json",
+    "./sds-dataset/annotations/instances_val.json",
+    "/content/sds-dataset/annotations/instances_val.json"
+]
 DATASET_JSON = "/content/sds-dataset/annotations/instances_val.json"
+for path in local_paths:
+    if os.path.exists(path):
+        DATASET_JSON = os.path.abspath(path)
+        break
+
 MODEL_WEIGHTS_PATH = "edl_model_weights.npz"
 
 def calculate_ece(probs, labels, num_bins=10):

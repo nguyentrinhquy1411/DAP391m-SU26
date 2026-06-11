@@ -3,7 +3,18 @@ import json
 import numpy as np
 
 # Configurations
+local_paths = [
+    "./archive/compressed/annotations/instances_val.json",
+    "./archive/annotations/instances_val.json",
+    "./sds-dataset/annotations/instances_val.json",
+    "/content/sds-dataset/annotations/instances_val.json"
+]
 DATASET_JSON = "/content/sds-dataset/annotations/instances_val.json"
+for path in local_paths:
+    if os.path.exists(path):
+        DATASET_JSON = os.path.abspath(path)
+        break
+
 OUTPUT_REPORT = "eda_summary_report.txt"
 
 def generate_mock_coco_json(output_path):
@@ -109,8 +120,22 @@ def run_eda(json_path):
         aspect_ratios.append(w / (h + 1e-6))
         
     # Telemetry Distribution Analysis
-    altitudes = [img.get("altitude", np.nan) for img in images if "altitude" in img]
-    pitches = [img.get("gimbal_pitch", np.nan) for img in images if "gimbal_pitch" in img]
+    altitudes = []
+    pitches = []
+    for img in images:
+        if "altitude" in img:
+            altitudes.append(img["altitude"])
+        elif "meta" in img and isinstance(img["meta"], dict):
+            alt_val = img["meta"].get("height_above_takeoff(meter)")
+            if alt_val is not None:
+                altitudes.append(alt_val)
+        
+        if "gimbal_pitch" in img:
+            pitches.append(img["gimbal_pitch"])
+        elif "meta" in img and isinstance(img["meta"], dict):
+            pitch_val = img["meta"].get("gimbal_pitch(degrees)")
+            if pitch_val is not None:
+                pitches.append(pitch_val)
     
     # Calculate Summary Stats
     report = []
