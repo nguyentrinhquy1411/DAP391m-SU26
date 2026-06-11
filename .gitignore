@@ -1,0 +1,11 @@
+# Python env
+.venv/
+__pycache__/
+*.pyc
+
+# Kaggle download cache
+kaggle_cache/
+sds-dataset/
+
+# Jupyter output caches
+.ipynb_checkpoints/
