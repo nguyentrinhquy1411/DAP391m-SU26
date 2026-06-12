@@ -7,7 +7,7 @@ if sys.platform.startswith('win'):
     sys.stdout.reconfigure(encoding='utf-8')
 
 url = "https://latex.ytotech.com/builds/sync"
-tex_path = "maritime_sar.tex"
+tex_path = "main.tex"
 pdf_path = "maritime_sar.pdf"
 
 
@@ -30,15 +30,15 @@ def compile_latex():
         ]
     }
     
-    # Check if pipeline.png exists and add it to resources
+    # Check if figures/pipeline.png exists and add it to resources
     import os
     import base64
-    if os.path.exists('pipeline.png'):
-        print("   [Info] Including pipeline.png in compilation resources")
-        with open('pipeline.png', 'rb') as img_f:
+    if os.path.exists('figures/pipeline.png'):
+        print("   [Info] Including figures/pipeline.png in compilation resources")
+        with open('figures/pipeline.png', 'rb') as img_f:
             img_b64 = base64.b64encode(img_f.read()).decode('utf-8')
             payload["resources"].append({
-                "path": "pipeline.png",
+                "path": "figures/pipeline.png",
                 "file": img_b64
             })
 
