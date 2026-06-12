@@ -47,6 +47,12 @@ if theme_choice == "Light Ocean":
     warning_card_bg_pulse_100 = "rgba(255, 200, 200, 0.85)"
     status_color = "#004d66"
     text_color_css = """
+        :root {
+            --primary-color: #007399 !important;
+            --background-color: #f0fcfe !important;
+            --secondary-background-color: #e0f7fa !important;
+            --text-color: #0c3547 !important;
+        }
         h1, h2, h3, h4, h5, h6, p, .status-text, li, td, th, .metric-card, .warning-card {
             color: #0c3547 !important;
         }
@@ -61,6 +67,22 @@ if theme_choice == "Light Ocean":
         }
         div[data-testid="stExpander"] {
             background-color: rgba(255, 255, 255, 0.6) !important;
+            border: 1px solid rgba(0, 150, 255, 0.15) !important;
+        }
+        div[role="listbox"] {
+            background-color: #ffffff !important;
+            color: #0c3547 !important;
+        }
+        div[data-baseweb="select"] {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            color: #0c3547 !important;
+        }
+        div[data-baseweb="popover"] {
+            background-color: #ffffff !important;
+            color: #0c3547 !important;
+        }
+        div[data-role="stSlider"] {
+            color: #007399 !important;
         }
     """
     grid_color = "rgba(0, 77, 102, 0.1)"
@@ -79,7 +101,14 @@ else:
     warning_card_bg_pulse_0 = "rgba(60, 20, 20, 0.55)"
     warning_card_bg_pulse_100 = "rgba(75, 22, 22, 0.75)"
     status_color = "#ffffff"
-    text_color_css = ""
+    text_color_css = """
+        :root {
+            --primary-color: #00d2ff !important;
+            --background-color: #0a192f !important;
+            --secondary-background-color: #0b1a30 !important;
+            --text-color: #ffffff !important;
+        }
+    """
     grid_color = "rgba(255,255,255,0.08)"
     text_color_plotly = "#ffffff"
     uav_color = "#00ffff"
