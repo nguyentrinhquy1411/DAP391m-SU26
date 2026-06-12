@@ -21,7 +21,7 @@ class UncertaintyKalmanFilter:
         self.P = np.eye(4) * 1.0
         
     def predict(self, state, current_drift):
-        drift_vec = np.array([0.0, 0.0, current_drift[0], current_drift[1]])
+        drift_vec = np.array([current_drift[0] * self.dt, current_drift[1] * self.dt, 0.0, 0.0])
         state_pred = self.F @ state + drift_vec
         self.P = self.F @ self.P @ self.F.T + self.Q
         return state_pred

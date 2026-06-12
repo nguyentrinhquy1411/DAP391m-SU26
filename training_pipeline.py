@@ -73,7 +73,7 @@ def train_pytorch(json_path):
     model = EDLClassifier(input_dim=7, num_classes=num_classes)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     
-    print("Beginning PyTorch training loops...")
+    print("Beginning MLP PyTorch training loops...")
     for epoch in range(1, 6):
         model.train()
         train_loss = 0.0
@@ -111,11 +111,78 @@ def train_pytorch(json_path):
         acc = np.mean(val_preds == val_targets)
         ece = calculate_ece(val_probs, val_targets)
         
-        print(f"Epoch {epoch}/5 | Train Loss: {train_loss/train_size:.4f} | Val Acc: {acc:.3f} | Val ECE: {ece:.4f}")
+        print(f"MLP Epoch {epoch}/5 | Train Loss: {train_loss/train_size:.4f} | Val Acc: {acc:.3f} | Val ECE: {ece:.4f}")
         
-    # Save weights
-    torch.save(model.state_dict(), "models/edl_weights.pth")
-    print("Saved model weights to: models/edl_weights.pth")
+    # Save MLP weights
+    os.makedirs("models", exist_ok=True)
+    torch.save(model.state_dict(), "models/edl_mlp_weights.pth")
+    print("Saved MLP model weights to: models/edl_mlp_weights.pth")
+
+    # --- Train Evidential CNN ---
+    from src.dataset import SeaDronesSeeImageDataset
+    from src.models import EvidentialCNNClassifier
+
+    print("\nTraining Evidential CNN Classifier on image crops...")
+    image_dataset = SeaDronesSeeImageDataset(annotations, images, cat_to_idx, base_dir=os.path.dirname(json_path) + "/../images")
+    if len(image_dataset) > 0:
+        img_train_size = int(0.8 * len(image_dataset))
+        img_val_size = len(image_dataset) - img_train_size
+        img_train_set, img_val_set = torch.utils.data.random_split(image_dataset, [img_train_size, img_val_size])
+        
+        # Using a small batch size for training efficiency
+        img_train_loader = DataLoader(img_train_set, batch_size=32, shuffle=True)
+        img_val_loader = DataLoader(img_val_set, batch_size=32, shuffle=False)
+        
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {device} for CNN training.")
+        
+        cnn_model = EvidentialCNNClassifier(num_classes=num_classes).to(device)
+        cnn_optimizer = optim.Adam(cnn_model.parameters(), lr=5e-5) # fine-tuning LR
+        
+        # Train for 3 epochs
+        for epoch in range(1, 4):
+            cnn_model.train()
+            train_loss = 0.0
+            for x, y in img_train_loader:
+                x, y = x.to(device), y.to(device)
+                cnn_optimizer.zero_grad()
+                evidence = cnn_model(x)
+                alpha = evidence + 1.0
+                y_onehot = torch.nn.functional.one_hot(y, num_classes=num_classes).float()
+                loss = edl_loss(alpha, y_onehot, epoch, num_classes)
+                loss.backward()
+                cnn_optimizer.step()
+                train_loss += loss.item() * x.size(0)
+                
+            # Eval
+            cnn_model.eval()
+            val_preds = []
+            val_targets = []
+            val_probs = []
+            with torch.no_grad():
+                for x, y in img_val_loader:
+                    x = x.to(device)
+                    evidence = cnn_model(x)
+                    alpha = evidence + 1.0
+                    S = torch.sum(alpha, dim=1, keepdim=True)
+                    probs = alpha / S
+                    val_probs.append(probs.cpu().numpy())
+                    val_preds.append(torch.argmax(probs, dim=1).cpu().numpy())
+                    val_targets.append(y.numpy())
+                    
+            val_probs = np.concatenate(val_probs, axis=0)
+            val_preds = np.concatenate(val_preds, axis=0)
+            val_targets = np.concatenate(val_targets, axis=0)
+            
+            acc = np.mean(val_preds == val_targets)
+            ece = calculate_ece(val_probs, val_targets)
+            print(f"CNN Epoch {epoch}/3 | Train Loss: {train_loss/img_train_size:.4f} | Val Acc: {acc:.3f} | Val ECE: {ece:.4f}")
+            
+        # Save CNN weights to edl_weights.pth
+        torch.save(cnn_model.state_dict(), "models/edl_weights.pth")
+        print("Saved CNN model weights to: models/edl_weights.pth")
+    else:
+        print("[Warning] No image crops resolved. Skipping Evidential CNN training.")
 
 
 def run_numpy_pipeline(json_path):

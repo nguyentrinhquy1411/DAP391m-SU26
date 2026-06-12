@@ -663,7 +663,7 @@ with col_right:
 
 # Lower Section Tabs
 st.markdown("---")
-tab1, tab2 = st.tabs(["📊 Live Evidential Subjective Logic (EDL)", "🏁 Comparative Performance Analysis"])
+tab1,tab2,tab3 = st.tabs(["📊 Live Evidential Subjective Logic (EDL)", "🏁 Comparative Performance Analysis", "🖼️ Evidential Visual Playground (Upload Image)"])
 
 with tab1:
     st.markdown("### 🧬 Subjective Logic Evidence Vectors")
@@ -675,6 +675,9 @@ with tab1:
         with edl_cols[idx]:
             st.markdown(f"**{data['name']}**")
             st.markdown(f"Status: `{'Rescued' if data['rescued'] else ('Occluded' if data['occluded'] else 'Visible')}`")
+            
+            if "crop_img" in data and data["crop_img"] is not None:
+                st.image(data["crop_img"], caption="UAV Camera Crop Input", use_container_width=True)
             
             # Draw Horizontal Bars
             # beliefs order in classifier: [Drowning, Floating, Swimming, PFD]
@@ -775,6 +778,126 @@ with tab2:
             "VSR (Greedy)": res_b["VSR"]
         })
     st.dataframe(pd.DataFrame(comp_vics), use_container_width=True, hide_index=True)
+
+with tab3:
+    st.markdown("### 🖼️ Evidential Visual Playground")
+    st.markdown("Upload any maritime image crop (e.g. swimmer, boat, debris) to see real-time evidential classification, expected risk calculation, and epistemic uncertainty prediction.")
+
+    uploaded_file = st.file_uploader("Choose a maritime image crop...", type=["jpg", "png", "jpeg", "webp"])
+    
+    if uploaded_file is not None:
+        from PIL import Image, ImageFilter
+        import torch
+        import torchvision.transforms as transforms
+        from src.models import EvidentialCNNClassifier
+        
+        # Load and display uploaded image
+        image = Image.open(uploaded_file).convert("RGB")
+        
+        # Sidelining options to simulate environment
+        col_img_1, col_img_2 = st.columns([1, 1])
+        with col_img_1:
+            st.markdown("**Original Uploaded Image**")
+            st.image(image, use_container_width=True)
+            
+        with col_img_2:
+            st.markdown("**Simulated Environmental Deterioration**")
+            sim_occlusion = st.checkbox("Simulate Wave Occlusion (Gaussian Blur)", value=False)
+            sim_dist = st.slider("Simulated UAV Distance (m)", 5.0, 100.0, 15.0, 1.0)
+            
+            # Apply same pipeline transformation as simulator
+            img_work = image.copy()
+            if sim_occlusion:
+                img_work = img_work.filter(ImageFilter.GaussianBlur(12.0))
+            if sim_dist > 25.0:
+                # Downsample
+                img_work = img_work.resize((8, 8)).resize((64, 64))
+            else:
+                img_work = img_work.resize((64, 64))
+                
+            st.image(img_work, caption="Processed Network Input (64x64)", use_container_width=True)
+            
+        # Run Inference
+        weights_path = "models/edl_weights.pth"
+        if not os.path.exists(weights_path):
+            st.error("Model weights not found at `models/edl_weights.pth`. Please train the model first.")
+        else:
+            try:
+                # Cache model to avoid reloading on every rerun
+                @st.cache_resource
+                def load_inference_model():
+                    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                    model_instance = EvidentialCNNClassifier(num_classes=5)
+                    model_instance.load_state_dict(torch.load(weights_path, map_location=device))
+                    model_instance.to(device)
+                    model_instance.eval()
+                    return model_instance, device
+                    
+                model, device = load_inference_model()
+                
+                # Preprocess image
+                t = transforms.Compose([
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+                ])
+                img_t = t(img_work).unsqueeze(0).to(device)
+                
+                with torch.no_grad():
+                    evidence = model(img_t).cpu().numpy()[0]
+                    
+                alpha = evidence + 1.0
+                S_sum = np.sum(alpha)
+                beliefs_raw = evidence / S_sum
+                u_val = 5.0 / S_sum
+                probs_raw = alpha / S_sum
+                
+                # Risk Weights: swimmer, floater, boat, life jacket, buoy
+                classes_labels_5 = ["Swimmer", "Floater", "Boat", "Life Jacket", "Buoy"]
+                risk_weights = np.array([1.0, 0.4, 0.2, 0.1, 0.05])
+                expected_risk = float(np.sum(probs_raw * risk_weights))
+                
+                # Metrics output
+                col_res1, col_res2, col_res3 = st.columns(3)
+                with col_res1:
+                    st.metric("🔬 Epistemic Uncertainty (u)", f"{u_val:.3f}")
+                with col_res2:
+                    st.metric("⚠️ Expected Posture Risk (E[R])", f"{expected_risk:.3f}")
+                with col_res3:
+                    # Predicted Class
+                    pred_idx = int(np.argmax(probs_raw))
+                    st.metric("🏷️ Predicted Category", classes_labels_5[pred_idx])
+                    
+                # Visual Evidence distribution bar chart
+                st.markdown("#### 📊 Dirichlet Evidence Vector (Alpha)")
+                
+                evidence_df = pd.DataFrame({
+                    "Category": classes_labels_5,
+                    "Raw Evidence (e)": [float(e) for e in evidence],
+                    "Belief Mass (b)": [float(b) for b in beliefs_raw]
+                })
+                
+                st.dataframe(evidence_df, use_container_width=True, hide_index=True)
+                
+                # Graph of evidence
+                fig_play = go.Figure()
+                fig_play.add_trace(go.Bar(
+                    x=classes_labels_5,
+                    y=beliefs_raw,
+                    name="Belief Mass",
+                    marker_color="#00d2ff"
+                ))
+                fig_play.update_layout(
+                    title="Estimated Class Probabilities (Belief)",
+                    yaxis=dict(range=[0, 1], gridcolor=grid_color, tickfont=dict(color=text_color_plotly)),
+                    xaxis=dict(tickfont=dict(color=text_color_plotly)),
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=text_color_plotly)
+                )
+                st.plotly_chart(fig_play, use_container_width=True)
+                
+            except Exception as e:
+                st.error(f"Inference failed: {e}")
 
 # Handle autoplay rerun at the end of the script after rendering is complete
 if autoplay:

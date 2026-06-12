@@ -58,6 +58,41 @@ if TORCH_AVAILABLE:
             evidence = F.softplus(logits)
             return evidence
 
+    class EvidentialCNNClassifier(nn.Module):
+        """Evidential CNN Classifier using a MobileNetV3 backbone (or lightweight custom CNN fallback)."""
+        def __init__(self, num_classes):
+            super().__init__()
+            try:
+                import torchvision.models as models
+                try:
+                    self.backbone = models.mobilenet_v3_small(weights=models.MobileNet_V3_Small_Weights.DEFAULT)
+                except AttributeError:
+                    self.backbone = models.mobilenet_v3_small(pretrained=True)
+                in_features = self.backbone.classifier[3].in_features
+                self.backbone.classifier[3] = nn.Linear(in_features, num_classes)
+                self.is_fallback = False
+            except Exception as e:
+                print(f"[Info] CNN backbone loading failed ({e}). Falling back to custom lightweight CNN.")
+                self.backbone = nn.Sequential(
+                    nn.Conv2d(3, 16, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2),
+                    nn.Conv2d(16, 32, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.MaxPool2d(2),
+                    nn.Conv2d(32, 64, kernel_size=3, padding=1),
+                    nn.ReLU(),
+                    nn.AdaptiveAvgPool2d((1, 1)),
+                    nn.Flatten(),
+                    nn.Linear(64, num_classes)
+                )
+                self.is_fallback = True
+
+        def forward(self, x):
+            logits = self.backbone(x)
+            evidence = F.softplus(logits)
+            return evidence
+
     class SoftmaxClassifier(nn.Module):
         """Standard Softmax classifier baseline."""
         def __init__(self, input_dim, num_classes):
@@ -99,6 +134,10 @@ if TORCH_AVAILABLE:
 else:
     # Dummy placeholder definitions in case torch isn't available
     class EDLClassifier(nn.Module):
+        def __init__(self, *args, **kwargs):
+            raise ImportError("PyTorch is not available.")
+            
+    class EvidentialCNNClassifier(nn.Module):
         def __init__(self, *args, **kwargs):
             raise ImportError("PyTorch is not available.")
             
