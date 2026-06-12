@@ -16,6 +16,13 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Theme selector
+theme_choice = st.sidebar.selectbox(
+    "🎨 App Visual Theme",
+    ["Dark Ocean", "Light Ocean"],
+    index=0
+)
+
 # Custom CSS for Premium Look
 import base64
 import os
@@ -28,14 +35,63 @@ def get_base64_of_bin_file(bin_file):
         return base64.b64encode(data).decode()
     return ""
 
-bg_base64 = get_base64_of_bin_file("assets/dark_ocean_bg.png")
+if theme_choice == "Light Ocean":
+    bg_base64 = get_base64_of_bin_file("assets/light_ocean_bg.png")
+    app_bg = f"linear-gradient(180deg, rgba(220, 245, 247, 0.85) 0%, rgba(195, 235, 240, 0.92) 100%), url('data:image/png;base64,{bg_base64}')"
+    sidebar_bg = f"linear-gradient(180deg, rgba(220, 245, 247, 0.95) 0%, rgba(185, 230, 238, 0.98) 100%), url('data:image/png;base64,{bg_base64}')"
+    card_bg = "rgba(255, 255, 255, 0.7)"
+    card_border = "1px solid rgba(0, 150, 255, 0.15)"
+    warning_card_bg = "rgba(255, 230, 230, 0.8)"
+    warning_card_border = "1px solid rgba(255, 75, 75, 0.25)"
+    warning_card_bg_pulse_0 = "rgba(255, 220, 220, 0.7)"
+    warning_card_bg_pulse_100 = "rgba(255, 200, 200, 0.85)"
+    status_color = "#004d66"
+    text_color_css = """
+        h1, h2, h3, h4, h5, h6, p, .status-text, li, td, th, .metric-card, .warning-card {
+            color: #0c3547 !important;
+        }
+        div[data-testid="stWidgetLabel"] p {
+            color: #0c3547 !important;
+        }
+        [data-testid="stMetricValue"] {
+            color: #007399 !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #0b3c5d !important;
+        }
+        div[data-testid="stExpander"] {
+            background-color: rgba(255, 255, 255, 0.6) !important;
+        }
+    """
+    grid_color = "rgba(0, 77, 102, 0.1)"
+    text_color_plotly = "#0c3547"
+    uav_color = "#004d66"
+    shadow_color = "rgba(0, 77, 102, 0.15)"
+    border_right_sidebar = "1px solid rgba(0, 77, 102, 0.15)"
+else:
+    bg_base64 = get_base64_of_bin_file("assets/dark_ocean_bg.png")
+    app_bg = f"linear-gradient(180deg, rgba(10, 25, 47, 0.82) 0%, rgba(10, 17, 30, 0.92) 100%), url('data:image/png;base64,{bg_base64}')"
+    sidebar_bg = f"linear-gradient(180deg, rgba(10, 25, 47, 0.93) 0%, rgba(5, 10, 18, 0.97) 100%), url('data:image/png;base64,{bg_base64}')"
+    card_bg = "rgba(18, 32, 54, 0.65)"
+    card_border = "1px solid rgba(255, 255, 255, 0.05)"
+    warning_card_bg = "rgba(60, 20, 20, 0.65)"
+    warning_card_border = "1px solid rgba(255, 255, 255, 0.05)"
+    warning_card_bg_pulse_0 = "rgba(60, 20, 20, 0.55)"
+    warning_card_bg_pulse_100 = "rgba(75, 22, 22, 0.75)"
+    status_color = "#ffffff"
+    text_color_css = ""
+    grid_color = "rgba(255,255,255,0.08)"
+    text_color_plotly = "#ffffff"
+    uav_color = "#00ffff"
+    shadow_color = "rgba(0, 0, 0, 0.3)"
+    border_right_sidebar = "1px solid rgba(255, 255, 255, 0.05)"
 
 # Custom CSS for Premium Look & Ocean Background
 st.markdown(f"""
 <style>
     /* Ocean Background Integration */
     [data-testid="stAppViewContainer"] {{
-        background-image: linear-gradient(180deg, rgba(10, 25, 47, 0.82) 0%, rgba(10, 17, 30, 0.92) 100%), url("data:image/png;base64,{bg_base64}");
+        background-image: {app_bg};
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -45,50 +101,51 @@ st.markdown(f"""
         background: rgba(0, 0, 0, 0);
     }}
     [data-testid="stSidebar"] {{
-        background-image: linear-gradient(180deg, rgba(10, 25, 47, 0.93) 0%, rgba(5, 10, 18, 0.97) 100%), url("data:image/png;base64,{bg_base64}");
+        background-image: {sidebar_bg};
         background-size: cover;
         background-position: center;
-        border-right: 1px solid rgba(255, 255, 255, 0.05);
+        border-right: {border_right_sidebar};
     }}
     
     /* Glassmorphic Cards & UI Elements */
     .metric-card {{
-        background-color: rgba(18, 32, 54, 0.65);
+        background-color: {card_bg};
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         padding: 18px;
         border-radius: 12px;
         border-left: 5px solid #00d2ff;
-        border-top: 1px solid rgba(255, 255, 255, 0.07);
-        border-right: 1px solid rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        border-top: {card_border};
+        border-right: {card_border};
+        border-bottom: {card_border};
         margin-bottom: 12px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        box-shadow: 0 8px 32px 0 {shadow_color};
     }}
     .warning-card {{
-        background-color: rgba(60, 20, 20, 0.65);
+        background-color: {warning_card_bg};
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
         padding: 18px;
         border-radius: 12px;
         border-left: 5px solid #ff4b4b;
-        border-top: 1px solid rgba(255, 255, 255, 0.07);
-        border-right: 1px solid rgba(255, 255, 255, 0.03);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        border-top: {warning_card_border};
+        border-right: {warning_card_border};
+        border-bottom: {warning_card_border};
         margin-bottom: 12px;
-        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+        box-shadow: 0 8px 32px 0 {shadow_color};
         animation: pulse 3s infinite alternate;
     }}
     @keyframes pulse {{
-        0% {{ background-color: rgba(60, 20, 20, 0.55); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3); }}
-        100% {{ background-color: rgba(75, 22, 22, 0.75); box-shadow: 0 8px 32px 0 rgba(255, 75, 75, 0.1); }}
+        0% {{ background-color: {warning_card_bg_pulse_0}; box-shadow: 0 8px 32px 0 {shadow_color}; }}
+        100% {{ background-color: {warning_card_bg_pulse_100}; box-shadow: 0 8px 32px 0 rgba(255, 75, 75, 0.1); }}
     }}
     .status-text {{
         font-weight: bold;
         font-size: 1.15rem;
-        color: #ffffff;
+        color: {status_color};
         letter-spacing: 0.5px;
     }}
+    {text_color_css}
 </style>
 """, unsafe_allow_html=True)
 
@@ -339,19 +396,20 @@ with col_left:
         x=[uav_x], y=[uav_y],
         mode="markers",
         name="UAV Drone",
-        marker=dict(symbol="triangle-up", size=18, color="#00ffff", line=dict(color="#ffffff", width=2)),
+        marker=dict(symbol="triangle-up", size=18, color=uav_color, line=dict(color="#ffffff" if theme_choice == "Dark Ocean" else "#0c3547", width=2)),
         hoverinfo="text",
         hovertext=f"UAV: ({uav_x:.1f}, {uav_y:.1f})"
     ))
     
     fig.update_layout(
-        xaxis=dict(range=[-85, 85], gridcolor="rgba(255,255,255,0.08)", zeroline=False),
-        yaxis=dict(range=[-85, 85], gridcolor="rgba(255,255,255,0.08)", zeroline=False),
+        xaxis=dict(range=[-85, 85], gridcolor=grid_color, zeroline=False, tickfont=dict(color=text_color_plotly)),
+        yaxis=dict(range=[-85, 85], gridcolor=grid_color, zeroline=False, tickfont=dict(color=text_color_plotly)),
         width=700, height=580,
         margin=dict(l=20, r=20, t=20, b=20),
         plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        showlegend=False
+        showlegend=False,
+        font=dict(color=text_color_plotly)
     )
     
     st.plotly_chart(fig, use_container_width=True)
@@ -464,10 +522,11 @@ with tab1:
                 margin=dict(l=10, r=10, t=10, b=10),
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(0,0,0,0)",
-                xaxis=dict(range=[0, 1], showticklabels=True),
+                xaxis=dict(range=[0, 1], showticklabels=True, tickfont=dict(color=text_color_plotly)),
                 yaxis=dict(showticklabels=False),
                 showlegend=True,
-                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=text_color_plotly)),
+                font=dict(color=text_color_plotly)
             )
             st.plotly_chart(fig_bar, use_container_width=True)
 

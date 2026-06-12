@@ -2,6 +2,8 @@
 
 > **Uncertainty-Aware Multi-Victim Prioritization for Maritime Search and Rescue**
 
+🔗 **Live Deployed GCS Dashboard:** [nguyentrinhquy1411-dap391m-su26-app-f0wroj.streamlit.app](https://nguyentrinhquy1411-dap391m-su26-app-f0wroj.streamlit.app/)
+
 ---
 
 ## Project Structure
@@ -96,6 +98,10 @@ uv run python training_pipeline.py
 
 ### 7 — Run the Interactive GCS Dashboard (Streamlit)
 
+The interactive Ground Control Station is deployed and accessible live at:  
+**🔗 Deployed URL:** [nguyentrinhquy1411-dap391m-su26-app-f0wroj.streamlit.app](https://nguyentrinhquy1411-dap391m-su26-app-f0wroj.streamlit.app/)
+
+Or run it locally:
 ```powershell
 uv run streamlit run app.py
 ```
