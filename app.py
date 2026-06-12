@@ -374,6 +374,7 @@ sim_steps = st.sidebar.slider("Max Sim Steps", 10, 50, 30)
 
 st.sidebar.markdown("#### 🌊 Target Setup")
 num_victims = st.sidebar.slider("Number of Victims", 1, 10, 3)
+num_distractors = st.sidebar.slider("Number of Distractors", 0, 5, 2, help="Number of non-victim visual distractors (buoys, debris) in the area.")
 occlusion_prob = st.sidebar.slider("Initial Occlusion Probability", 0.0, 1.0, 0.3, 0.1, help="Probability that targets start as 'occluded' by waves/foam.")
 drift_x = st.sidebar.slider("Ocean Drift X (m/s)", -1.0, 1.0, 0.1, 0.05)
 drift_y = st.sidebar.slider("Ocean Drift Y (m/s)", -1.0, 1.0, -0.05, 0.05)
@@ -383,7 +384,7 @@ seed = st.sidebar.number_input("Random Seed", value=42, step=1)
 
 # Generate Victims consistently
 @st.cache_data
-def generate_victims(num_vics, seed_val, occ_prob):
+def generate_victims(num_vics, num_dist, seed_val, occ_prob):
     np.random.seed(seed_val)
     victim_init = {}
     
@@ -395,7 +396,8 @@ def generate_victims(num_vics, seed_val, occ_prob):
         "pos": pos1,
         "class": 0, # Drowning
         "occluded": (np.random.rand() < occ_prob),
-        "name": "Victim 1 (Drowning)"
+        "name": "Victim 1 (Drowning)",
+        "is_distractor": False
     }
     
     classes = [0, 1, 2, 3]
@@ -410,11 +412,27 @@ def generate_victims(num_vics, seed_val, occ_prob):
             "pos": pos,
             "class": cls,
             "occluded": (np.random.rand() < occ_prob),
-            "name": f"Victim {idx} ({class_names[cls]})"
+            "name": f"Victim {idx} ({class_names[cls]})",
+            "is_distractor": False
+        }
+        
+    # Add distractors (buoys, debris)
+    dist_types = ["Buoy", "Debris", "Wave Object"]
+    for d_idx in range(num_dist):
+        did = num_vics + d_idx + 1
+        pos = np.random.uniform(-70.0, 70.0, 2)
+        while np.linalg.norm(pos) < 15.0:
+            pos = np.random.uniform(-70.0, 70.0, 2)
+        victim_init[did] = {
+            "pos": pos,
+            "class": np.random.choice(classes),
+            "occluded": (np.random.rand() < 0.5),
+            "name": f"Distractor {d_idx+1} ({np.random.choice(dist_types)})",
+            "is_distractor": True
         }
     return victim_init
 
-victim_init = generate_victims(num_victims, seed, occlusion_prob)
+victim_init = generate_victims(num_victims, num_distractors, seed, occlusion_prob)
 
 # Run simulations (Active configuration and Baseline Greedy Router)
 @st.cache_data
@@ -514,15 +532,28 @@ with col_left:
     classes_labels = {0: "Drowning", 1: "Floating", 2: "Swimming", 3: "PFD Floater"}
     
     for vid, data in current_state["victims"].items():
-        color = vic_colors[data["class"]]
+        is_dist = data.get("is_distractor", False)
+        filtered = data.get("filtered_out", False)
+        
+        if is_dist:
+            color = "#778899" if filtered else "#9400d3" # Slate grey if filtered, dark violet if active
+            symbol_true = "triangle-down-open" if filtered else "triangle-down"
+            symbol_est = "x-open" if filtered else "x"
+            label_text = f"Distractor {data['name'].split(' ')[1]} (Filtered)" if filtered else f"Dist. {data['name'].split(' ')[1]}"
+        else:
+            color = vic_colors[data["class"]]
+            symbol_true = "square-open" if data["occluded"] else "square"
+            symbol_est = "cross"
+            label_text = f"Victim {data['name'].split(' ')[1]} (Est)"
+            
         name = data["name"]
         
-        # True position (represented by square marker)
+        # True position (represented by square or triangle marker)
         fig.add_trace(go.Scatter(
             x=[data["true_pos"][0]], y=[data["true_pos"][1]],
             mode="markers",
             name=f"{name} (True)",
-            marker=dict(symbol="square-open" if data["occluded"] else "square", size=10, color=color),
+            marker=dict(symbol=symbol_true, size=10, color=color),
             hoverinfo="text",
             hovertext=f"True Location: ({data['true_pos'][0]:.1f}, {data['true_pos'][1]:.1f})"
         ))
@@ -540,16 +571,16 @@ with col_left:
             x1=est_x + cov_radius, y1=est_y + cov_radius,
             line=dict(color=color, width=1, dash="dot"),
             fillcolor=color,
-            opacity=0.15
+            opacity=0.08 if filtered else 0.15
         )
         
         # Estimated centroid point
         fig.add_trace(go.Scatter(
             x=[est_x], y=[est_y],
             mode="markers+text",
-            text=[f"{data['name'].split(' ')[1]} (Est)"],
+            text=[label_text],
             textposition="top center",
-            marker=dict(symbol="cross", size=8, color=color),
+            marker=dict(symbol=symbol_est, size=8, color=color),
             name=f"{name} (Est)"
         ))
         
@@ -636,14 +667,21 @@ with col_right:
     # Priority Queue table
     priority_rows = []
     for vid, data in current_state["victims"].items():
+        is_dist = data.get("is_distractor", False)
+        filtered = data.get("filtered_out", False)
+        
         if data["rescued"]:
             status_str = "✅ Rescued"
+        elif filtered:
+            status_str = "🚫 Filtered (Distractor)"
         else:
             status_str = f"🔍 Scan (Score: {data['score']:.3f})"
         
+        posture_str = "Visual Clutter" if is_dist else classes_labels.get(data["class"], "Unknown")
+        
         priority_rows.append({
             "Victim": data["name"],
-            "Posture": classes_labels[data["class"]],
+            "Posture": posture_str,
             "Uncertainty (u)": round(data["u"], 3),
             "Expected Risk (er)": round(data["er"], 3),
             "Priority Score": round(data["score"], 4),
@@ -669,7 +707,7 @@ with tab1:
     st.markdown("### 🧬 Subjective Logic Evidence Vectors")
     st.markdown("Showing the Belief ($b$), Disbelief ($d$), and Epistemic Uncertainty ($u$) for each victim at the current step.")
     
-    edl_cols = st.columns(num_victims)
+    edl_cols = st.columns(len(current_state["victims"]))
     
     for idx, (vid, data) in enumerate(current_state["victims"].items()):
         with edl_cols[idx]:
@@ -717,21 +755,21 @@ with tab1:
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(color=text_color_plotly)),
                 font=dict(color=text_color_plotly)
             )
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, use_container_width=True, key=f"edl_bar_{vid}")
 
 with tab2:
     st.markdown("### 🏁 Live Trial Comparison vs. Distance Router (Greedy)")
     st.markdown("We run the exact same victim starting conditions through the baseline distance router (nearest-first) to demonstrate how the AES-RARR framework improves victim survival rate.")
     
     # Active run metrics
-    worst_vsr_active = min([r["VSR"] for r in results])
-    mean_vsr_active = np.mean([r["VSR"] for r in results])
-    mean_ttr_active = np.mean([float(r["TTR (steps)"]) if not str(r["TTR (steps)"]).startswith(">") else float(r["TTR (steps)"][1:]) for r in results])
+    worst_vsr_active = min([r["VSR"] for r in results if "Distractor" not in r["Victim"]])
+    mean_vsr_active = np.mean([r["VSR"] for r in results if "Distractor" not in r["Victim"]])
+    mean_ttr_active = np.mean([float(r["TTR (steps)"]) if not str(r["TTR (steps)"]).startswith(">") else float(r["TTR (steps)"][1:]) for r in results if "Distractor" not in r["Victim"]])
     
     # Baseline metrics
-    worst_vsr_base = min([r["VSR"] for r in base_results])
-    mean_vsr_base = np.mean([r["VSR"] for r in base_results])
-    mean_ttr_base = np.mean([float(r["TTR (steps)"]) if not str(r["TTR (steps)"]).startswith(">") else float(r["TTR (steps)"][1:]) for r in base_results])
+    worst_vsr_base = min([r["VSR"] for r in base_results if "Distractor" not in r["Victim"]])
+    mean_vsr_base = np.mean([r["VSR"] for r in base_results if "Distractor" not in r["Victim"]])
+    mean_ttr_base = np.mean([float(r["TTR (steps)"]) if not str(r["TTR (steps)"]).startswith(">") else float(r["TTR (steps)"][1:]) for r in base_results if "Distractor" not in r["Victim"]])
     
     # Build comparison df
     comp_df = pd.DataFrame([
@@ -768,12 +806,14 @@ with tab2:
     for idx in range(len(results)):
         res_a = results[idx]
         res_b = base_results[idx]
+        if "Distractor" in res_a["Victim"]:
+            continue
         comp_vics.append({
             "Victim": res_a["Victim"],
             f"Rescued ({mode})": res_a["Rescued"],
             "Rescued (Greedy)": res_b["Rescued"],
-            f"TTR ({mode})": res_a["TTR (steps)"],
-            "TTR (Greedy)": res_b["TTR (steps)"],
+            f"TTR ({mode})": str(res_a["TTR (steps)"]),
+            "TTR (Greedy)": str(res_b["TTR (steps)"]),
             f"VSR ({mode})": res_a["VSR"],
             "VSR (Greedy)": res_b["VSR"]
         })

@@ -8,7 +8,7 @@ from .simulator import EvidentialClassifierSimulator
 try:
     import torch
     import torchvision.transforms as transforms
-    from PIL import Image
+    from PIL import Image, ImageFilter
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
@@ -175,7 +175,7 @@ def run_simulation(mode: str,
     history = []
     vic_metrics = {vid: {"beliefs": np.array([0.25, 0.25, 0.25, 0.25]), "u": 1.0, "er": 0.5, "score": 0.0} for vid in victim_init}
     
-    # Initialize victims
+    # Initialize victims (and distractors)
     vics = {vid: {
         "state":         np.array([d["pos"][0], d["pos"][1], 0.0, 0.0]),
         "class":         d["class"],
@@ -184,6 +184,8 @@ def run_simulation(mode: str,
         "rescued":       False,
         "rescue_time":   None,
         "active_branch": False,
+        "is_distractor": d.get("is_distractor", False),
+        "filtered_out":  False,  # Set True when active branch identifies a distractor
     } for vid, d in victim_init.items()}
     
     trs = {vid: UncertaintyKalmanFilter() for vid in vics}
@@ -217,7 +219,7 @@ def run_simulation(mode: str,
         cumulative_time += 1.0
 
         for vid, data in vics.items():
-            if data["rescued"]:
+            if data["rescued"] or data["filtered_out"]:
                 continue
                 
             # Drift victim position with ocean current
@@ -239,7 +241,7 @@ def run_simulation(mode: str,
                     img_work = crop_img.copy()
                     if data["occluded"]:
                         # Occlusion: Blur image crop heavily
-                        img_work = img_work.filter(Image.ImageFilter.GaussianBlur(12.0))
+                        img_work = img_work.filter(ImageFilter.GaussianBlur(12.0))
                     if dist > 25.0:
                         # Long distance: downsample
                         img_work = img_work.resize((8, 8)).resize((64, 64))
@@ -303,9 +305,15 @@ def run_simulation(mode: str,
                     data["occluded"] = False       # descent clears occlusion!
                     branch_step = True
                     total_descent_attempts += 1
-                    # Map to SeaDronesSee classes: class 0 is Drowning, 1 is Floating
-                    if data["class"] in [0, 1]:  
-                        true_positive_descents += 1
+                    # After verification descent, check if target is a distractor
+                    if data["is_distractor"]:
+                        # Active branch identifies distractor → filter it out
+                        data["filtered_out"] = True
+                        data["active_branch"] = False
+                    else:
+                        # Map to SeaDronesSee classes: class 0 is Drowning, 1 is Floating
+                        if data["class"] in [0, 1]:  
+                            true_positive_descents += 1
                 else:
                     data["active_branch"] = False
                     if dist < 12.0:                # proximity clears occlusion
@@ -339,7 +347,7 @@ def run_simulation(mode: str,
             break
 
         # Action Selection (Rollout vs Greedy)
-        unrescued = {vid for vid, d in vics.items() if not d["rescued"]}
+        unrescued = {vid for vid, d in vics.items() if not d["rescued"] and not d["filtered_out"]}
         if mode == "aes_rarr" and len(unrescued) > 0:
             best = select_next_target_lookahead(uav, unrescued, vics, uav_speed, decay_rates, descent_latency, depth=3)
         else:
@@ -352,7 +360,7 @@ def run_simulation(mode: str,
 
         # Rescue check
         for vid in list(pris.keys()):
-            if np.linalg.norm(tpos[vid] - uav) <= rescue_dist and not vics[vid]["rescued"]:
+            if np.linalg.norm(tpos[vid] - uav) <= rescue_dist and not vics[vid]["rescued"] and not vics[vid]["filtered_out"]:
                 vics[vid]["rescued"] = True
                 vics[vid]["rescue_time"] = cumulative_time
 
@@ -372,7 +380,9 @@ def run_simulation(mode: str,
                     "u": float(vic_metrics[vid]["u"]),
                     "er": float(vic_metrics[vid]["er"]),
                     "score": float(vic_metrics[vid]["score"]),
-                    "crop_img": vic_metrics[vid].get("crop_img")
+                    "crop_img": vic_metrics[vid].get("crop_img"),
+                    "filtered_out": data.get("filtered_out", False),
+                    "is_distractor": data.get("is_distractor", False)
                 }
             history.append({
                 "step": step,
