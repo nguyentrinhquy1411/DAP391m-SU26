@@ -4,45 +4,20 @@ import numpy as np
 
 # Configurations
 local_paths = [
+    "./data/annotations/instances_val.json",
     "./archive/compressed/annotations/instances_val.json",
     "./archive/annotations/instances_val.json",
     "./sds-dataset/annotations/instances_val.json",
     "/content/sds-dataset/annotations/instances_val.json"
 ]
-DATASET_JSON = "/content/sds-dataset/annotations/instances_val.json"
+
+DATASET_JSON = "./data/annotations/instances_val.json"
 for path in local_paths:
     if os.path.exists(path):
         DATASET_JSON = os.path.abspath(path)
         break
 
-MODEL_WEIGHTS_PATH = "edl_model_weights.npz"
-
-def calculate_ece(probs, labels, num_bins=10):
-    """Calculates the Expected Calibration Error (ECE) for evaluation."""
-    bin_boundaries = np.linspace(0, 1, num_bins + 1)
-    ece = 0.0
-    n_samples = len(probs)
-    
-    # Get max predicted probabilities and corresponding class predictions
-    pred_probs = np.max(probs, axis=1)
-    pred_labels = np.argmax(probs, axis=1)
-    
-    for i in range(num_bins):
-        bin_lower = bin_boundaries[i]
-        bin_upper = bin_boundaries[i + 1]
-        
-        # Select indices of samples in the current bin
-        in_bin = (pred_probs > bin_lower) & (pred_probs <= bin_upper)
-        prop_in_bin = np.mean(in_bin)
-        
-        if prop_in_bin > 0:
-            # Accuracy in bin
-            bin_acc = np.mean(pred_labels[in_bin] == labels[in_bin])
-            # Confidence in bin
-            bin_conf = np.mean(pred_probs[in_bin])
-            ece += prop_in_bin * np.abs(bin_acc - bin_conf)
-            
-    return ece
+MODEL_WEIGHTS_PATH = "models/edl_model_weights.npz"
 
 
 def digamma(x):
@@ -63,11 +38,13 @@ def digamma(x):
 
 
 def train_pytorch(json_path):
-    """Standard PyTorch implementation of the Evidential Deep Learning Pipeline."""
+    """Standard PyTorch implementation of the Evidential Deep Learning Pipeline using src modules."""
     import torch
-    import torch.nn as nn
     import torch.optim as optim
-    from torch.utils.data import Dataset, DataLoader
+    from torch.utils.data import DataLoader
+    
+    from src.dataset import SeaDronesSeeDataset
+    from src.models import EDLClassifier, edl_loss, calculate_ece
     
     # 1. Parse dataset annotations
     with open(json_path, 'r') as f:
@@ -83,85 +60,8 @@ def train_pytorch(json_path):
     
     print(f"Dataset categories parsed: {num_classes} classes.")
     
-    # 2. PyTorch Dataset
-    class SeaDronesSeeDataset(Dataset):
-        def __init__(self, annotations, images, cat_to_idx):
-            self.features = []
-            self.labels = []
-            for ann in annotations:
-                img_id = ann["image_id"]
-                img = images[img_id]
-                bbox = ann["bbox"] # [x, y, w, h]
-                
-                # Feature Engineering: aspect ratios and scale properties
-                w_norm = bbox[2] / img["width"]
-                h_norm = bbox[3] / img["height"]
-                aspect_ratio = bbox[2] / (bbox[3] + 1e-6)
-                
-                # Image center coordinates
-                cx_norm = (bbox[0] + bbox[2]/2.0) / img["width"]
-                cy_norm = (bbox[1] + bbox[3]/2.0) / img["height"]
-                center_dist = np.sqrt((cx_norm - 0.5)**2 + (cy_norm - 0.5)**2)
-                
-                # Crop relative area
-                rel_area = (bbox[2] * bbox[3]) / (img["width"] * img["height"])
-                
-                feat = [w_norm, h_norm, aspect_ratio, cx_norm, cy_norm, center_dist, rel_area]
-                self.features.append(feat)
-                self.labels.append(cat_to_idx[ann["category_id"]])
-                
-            self.features = torch.tensor(self.features, dtype=torch.float32)
-            self.labels = torch.tensor(self.labels, dtype=torch.long)
-            
-        def __len__(self):
-            return len(self.labels)
-            
-        def __getitem__(self, idx):
-            return self.features[idx], self.labels[idx]
-            
-    # 3. Model Definition (MLP with Softplus output for evidence)
-    class EDLClassifier(nn.Module):
-        def __init__(self, input_dim, num_classes):
-            super().__init__()
-            self.net = nn.Sequential(
-                nn.Linear(input_dim, 64),
-                nn.ReLU(),
-                nn.Linear(64, 32),
-                nn.ReLU(),
-                nn.Linear(32, num_classes)
-            )
-            
-        def forward(self, x):
-            logits = self.net(x)
-            # Guarantee evidence is positive using Softplus
-            evidence = torch.functional.F.softplus(logits)
-            return evidence
-            
-    # 4. EDL Loss (Dirichlet NLL + KL Divergence regularizer)
-    def edl_loss(alpha, y_onehot, epoch_idx, num_classes, kl_annealing_epochs=10):
-        S = torch.sum(alpha, dim=1, keepdim=True)
-        # NLL loss under Dirichlet
-        loss_nll = torch.sum(y_onehot * (torch.digamma(S) - torch.digamma(alpha)), dim=1)
-        
-        # KL regularizer to penalize incorrect class evidence
-        alp_tilde = y_onehot + (1.0 - y_onehot) * alpha
-        kl_alpha = torch.ones((1, num_classes), device=alpha.device)
-        
-        # Dirichlet KL equation
-        sum_alp_tilde = torch.sum(alp_tilde, dim=1, keepdim=True)
-        first_term = torch.lgamma(sum_alp_tilde) - torch.lgamma(torch.sum(kl_alpha, dim=1, keepdim=True))
-        second_term = torch.sum(torch.lgamma(kl_alpha) - torch.lgamma(alp_tilde), dim=1, keepdim=True)
-        third_term = torch.sum((alp_tilde - 1.0) * (torch.digamma(alp_tilde) - torch.digamma(sum_alp_tilde)), dim=1, keepdim=True)
-        
-        loss_kl = (first_term + second_term + third_term).squeeze()
-        
-        # Anneal KL coefficient
-        beta = min(1.0, epoch_idx / kl_annealing_epochs)
-        total_loss = torch.mean(loss_nll + beta * loss_kl)
-        return total_loss
-
-    # Split dataset into train/val
-    dataset = SeaDronesSeeDataset(annotations, images, cat_to_idx)
+    # Use SeaDronesSeeDataset with include_center_dist=True (matches training pipeline features)
+    dataset = SeaDronesSeeDataset(annotations, images, cat_to_idx, include_center_dist=True)
     train_size = int(0.8 * len(dataset))
     val_size = len(dataset) - train_size
     train_set, val_set = torch.utils.data.random_split(dataset, [train_size, val_size])
@@ -169,6 +69,7 @@ def train_pytorch(json_path):
     train_loader = DataLoader(train_set, batch_size=32, shuffle=True)
     val_loader = DataLoader(val_set, batch_size=32, shuffle=False)
     
+    # Input dim is 7 because include_center_dist=True
     model = EDLClassifier(input_dim=7, num_classes=num_classes)
     optimizer = optim.Adam(model.parameters(), lr=1e-3)
     
@@ -213,8 +114,8 @@ def train_pytorch(json_path):
         print(f"Epoch {epoch}/5 | Train Loss: {train_loss/train_size:.4f} | Val Acc: {acc:.3f} | Val ECE: {ece:.4f}")
         
     # Save weights
-    torch.save(model.state_dict(), "edl_weights.pth")
-    print("Saved model weights to: edl_weights.pth")
+    torch.save(model.state_dict(), "models/edl_weights.pth")
+    print("Saved model weights to: models/edl_weights.pth")
 
 
 def run_numpy_pipeline(json_path):
@@ -222,6 +123,8 @@ def run_numpy_pipeline(json_path):
     print("\n" + "="*80)
     print("RUNNING PIPELINE USING NUMPY GRADIENT DESCENT (FALLBACK)")
     print("="*80)
+    
+    from src.models import calculate_ece
     
     with open(json_path, 'r') as f:
         coco = json.load(f)
@@ -334,7 +237,7 @@ def run_numpy_pipeline(json_path):
 if __name__ == "__main__":
     if not os.path.exists(DATASET_JSON):
         print(f"[Info] COCO annotation file not found at {DATASET_JSON}. Running EDA first...")
-        from eda_seadronessee import run_eda
+        from src.eda import run_eda
         run_eda(DATASET_JSON)
         
     try:

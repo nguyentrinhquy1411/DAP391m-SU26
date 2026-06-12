@@ -13,3 +13,6 @@ archive.zip
 
 # Jupyter output caches
 .ipynb_checkpoints/
+
+# Ignored data folder
+data/
