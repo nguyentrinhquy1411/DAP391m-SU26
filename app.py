@@ -53,10 +53,10 @@ if theme_choice == "Light Ocean":
             --secondary-background-color: #e0f7fa !important;
             --text-color: #0c3547 !important;
         }
-        h1, h2, h3, h4, h5, h6, p, .status-text, li, td, th, .metric-card, .warning-card {
+        h1, h2, h3, h4, h5, h6, p, li, td, th, label, span, .status-text {
             color: #0c3547 !important;
         }
-        div[data-testid="stWidgetLabel"] p {
+        div[data-testid="stWidgetLabel"] p, label {
             color: #0c3547 !important;
         }
         [data-testid="stMetricValue"] {
@@ -64,6 +64,12 @@ if theme_choice == "Light Ocean":
         }
         [data-testid="stMetricLabel"] {
             color: #0b3c5d !important;
+        }
+        .metric-card, .warning-card {
+            color: #0c3547 !important;
+        }
+        .metric-card * , .warning-card * {
+            color: #0c3547 !important;
         }
         div[data-testid="stExpander"] {
             background-color: rgba(255, 255, 255, 0.6) !important;
@@ -73,16 +79,73 @@ if theme_choice == "Light Ocean":
             background-color: #ffffff !important;
             color: #0c3547 !important;
         }
+        div[role="listbox"] * {
+            background-color: #ffffff !important;
+            color: #0c3547 !important;
+        }
         div[data-baseweb="select"] {
             background-color: rgba(255, 255, 255, 0.8) !important;
             color: #0c3547 !important;
+        }
+        div[data-baseweb="select"] * {
+            color: #0c3547 !important;
+            background-color: transparent !important;
         }
         div[data-baseweb="popover"] {
             background-color: #ffffff !important;
             color: #0c3547 !important;
         }
+        div[data-baseweb="popover"] * {
+            background-color: transparent !important;
+            color: #0c3547 !important;
+        }
+        input {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            color: #0c3547 !important;
+        }
+        div[data-testid="stNumberInput"] div {
+            background-color: rgba(255, 255, 255, 0.9) !important;
+            color: #0c3547 !important;
+        }
+        div[data-testid="stNumberInput"] input {
+            color: #0c3547 !important;
+        }
+        div[data-testid="stNumberInput"] button {
+            color: #0c3547 !important;
+            background-color: rgba(0, 77, 102, 0.1) !important;
+        }
         div[data-role="stSlider"] {
             color: #007399 !important;
+        }
+        div[data-testid="stSlider"] * {
+            color: #0c3547 !important;
+        }
+        button[data-baseweb="tab"] {
+            color: #0c3547 !important;
+            background-color: transparent !important;
+        }
+        button[data-baseweb="tab"]:hover {
+            color: #007399 !important;
+        }
+        button[aria-selected="true"] {
+            color: #007399 !important;
+            border-bottom-color: #007399 !important;
+        }
+        div[data-testid="stDataFrame"] * {
+            color: #0c3547 !important;
+            background-color: rgba(255, 255, 255, 0.5) !important;
+        }
+        table {
+            background-color: rgba(255, 255, 255, 0.6) !important;
+        }
+        button[kind="secondary"] {
+            background-color: rgba(255, 255, 255, 0.8) !important;
+            color: #0c3547 !important;
+            border: 1px solid rgba(0, 150, 255, 0.25) !important;
+        }
+        button[kind="secondary"]:hover {
+            background-color: #007399 !important;
+            color: #ffffff !important;
         }
     """
     grid_color = "rgba(0, 77, 102, 0.1)"
@@ -107,6 +170,100 @@ else:
             --background-color: #0a192f !important;
             --secondary-background-color: #0b1a30 !important;
             --text-color: #ffffff !important;
+        }
+        h1, h2, h3, h4, h5, h6, p, li, td, th, label, span, .status-text {
+            color: #ffffff !important;
+        }
+        div[data-testid="stWidgetLabel"] p, label {
+            color: #ffffff !important;
+        }
+        [data-testid="stMetricValue"] {
+            color: #00d2ff !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #a0aec0 !important;
+        }
+        .metric-card, .warning-card {
+            color: #ffffff !important;
+        }
+        .metric-card * , .warning-card * {
+            color: #ffffff !important;
+        }
+        div[data-baseweb="select"] {
+            background-color: rgba(18, 32, 54, 0.9) !important;
+            color: #ffffff !important;
+        }
+        div[data-baseweb="select"] * {
+            color: #ffffff !important;
+            background-color: transparent !important;
+        }
+        div[role="listbox"] {
+            background-color: #0b1a30 !important;
+            color: #ffffff !important;
+        }
+        div[role="listbox"] * {
+            background-color: #0b1a30 !important;
+            color: #ffffff !important;
+        }
+        div[data-baseweb="popover"] {
+            background-color: #0b1a30 !important;
+            color: #ffffff !important;
+        }
+        div[data-baseweb="popover"] * {
+            background-color: transparent !important;
+            color: #ffffff !important;
+        }
+        input {
+            background-color: rgba(18, 32, 54, 0.9) !important;
+            color: #ffffff !important;
+        }
+        div[data-testid="stNumberInput"] div {
+            background-color: rgba(18, 32, 54, 0.9) !important;
+            color: #ffffff !important;
+        }
+        div[data-testid="stNumberInput"] input {
+            color: #ffffff !important;
+        }
+        div[data-testid="stNumberInput"] button {
+            color: #ffffff !important;
+            background-color: rgba(255, 255, 255, 0.05) !important;
+        }
+        div[data-role="stSlider"] {
+            color: #00d2ff !important;
+        }
+        div[data-testid="stSlider"] * {
+            color: #ffffff !important;
+        }
+        div[data-testid="stExpander"] {
+            background-color: rgba(18, 32, 54, 0.5) !important;
+            border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        }
+        button[data-baseweb="tab"] {
+            color: #ffffff !important;
+            background-color: transparent !important;
+        }
+        button[data-baseweb="tab"]:hover {
+            color: #00d2ff !important;
+        }
+        button[aria-selected="true"] {
+            color: #00d2ff !important;
+            border-bottom-color: #00d2ff !important;
+        }
+        div[data-testid="stDataFrame"] * {
+            color: #ffffff !important;
+            background-color: rgba(18, 32, 54, 0.4) !important;
+        }
+        table {
+            background-color: rgba(18, 32, 54, 0.5) !important;
+        }
+        button[kind="secondary"] {
+            background-color: rgba(18, 32, 54, 0.8) !important;
+            color: #ffffff !important;
+            border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+        button[kind="secondary"]:hover {
+            background-color: #00d2ff !important;
+            color: #0a192f !important;
         }
     """
     grid_color = "rgba(255,255,255,0.08)"
