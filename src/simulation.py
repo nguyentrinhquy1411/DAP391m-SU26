@@ -32,13 +32,16 @@ def run_simulation(mode: str,
                    rescue_dist=RESCUE_DIST_DEFAULT, 
                    decay_rates=DECAY_RATES_DEFAULT, 
                    victim_init=VICTIM_INIT_DEFAULT,
-                   descent_latency=1.0):
+                   descent_latency=1.0,
+                   return_history=False):
     """
     Runs target tracking and UAV search & rescue routing simulation under five modes:
     'aes_rarr' | 'no_branch' | 'static_R' | 'deterministic' | 'distance_router'
     """
     clf = EvidentialClassifierSimulator()
     uav = np.array([0.0, 0.0])
+    history = []
+    vic_metrics = {vid: {"beliefs": np.array([0.25, 0.25, 0.25, 0.25]), "u": 1.0, "er": 0.5, "score": 0.0} for vid in victim_init}
     
     # Initialize victims
     vics = {vid: {
@@ -82,6 +85,12 @@ def run_simulation(mode: str,
 
             beliefs, u, probs = clf.estimate(data["class"], dist, data["occluded"])
             er = float(np.sum(probs * clf.risk_weights))
+            vic_metrics[vid] = {
+                "beliefs": beliefs,
+                "u": u,
+                "er": er,
+                "score": 0.0
+            }
 
             # Kalman update — dynamic R only for aes_rarr and no_branch
             g_use = gamma_r if mode in ["aes_rarr", "no_branch"] else 0.0
@@ -123,6 +132,7 @@ def run_simulation(mode: str,
                 score = 1.0 / (dist + 1.0)
 
             pris[vid] = score
+            vic_metrics[vid]["score"] = score
             tpos[vid] = sts[vid][:2]
 
         if branch_step:
@@ -143,6 +153,34 @@ def run_simulation(mode: str,
                 vics[vid]["rescued"] = True
                 vics[vid]["rescue_time"] = cumulative_time
 
+        if return_history:
+            step_vic_data = {}
+            for vid, data in vics.items():
+                step_vic_data[vid] = {
+                    "name": data["name"],
+                    "true_pos": data["state"][:2].copy(),
+                    "est_pos": sts[vid][:2].copy() if vid in sts else data["state"][:2].copy(),
+                    "rescued": data["rescued"],
+                    "rescue_time": data["rescue_time"],
+                    "active_branch": data["active_branch"],
+                    "occluded": data["occluded"],
+                    "class": data["class"],
+                    "beliefs": [float(b) for b in vic_metrics[vid]["beliefs"]],
+                    "u": float(vic_metrics[vid]["u"]),
+                    "er": float(vic_metrics[vid]["er"]),
+                    "score": float(vic_metrics[vid]["score"])
+                }
+            history.append({
+                "step": step,
+                "uav": uav.copy(),
+                "uav_altitude": 20.0 if (mode in ["aes_rarr", "static_R"] and any(v["active_branch"] for v in vics.values())) else 50.0,
+                "victims": step_vic_data,
+                "priorities": pris.copy(),
+                "best_target": best if 'best' in locals() else None,
+                "cumulative_time": cumulative_time,
+                "branches": branches
+            })
+
     # Compute TTR and VSR per victim
     precision = true_positive_descents / total_descent_attempts if total_descent_attempts > 0 else 0.0
     results = []
@@ -160,4 +198,6 @@ def run_simulation(mode: str,
             "TrueClass":     data["class"],
             "branch_precision": round(precision, 4)
         })
+    if return_history:
+        return results, branches, history
     return results, branches

@@ -10,7 +10,12 @@
 DAP/
 ├── pyproject.toml          # uv project manifest
 ├── README.md
+├── app.py                  # Interactive Streamlit GCS Dashboard
+├── run_monte_carlo.py      # Batch Monte Carlo experiment runner for the paper
 ├── .venv/                  # managed by uv (gitignored)
+│
+├── assets/                 # Visual UI assets (background images, logos, etc.)
+│   └── dark_ocean_bg.png   # Premium dark ocean background image
 │
 ├── data/                   # SeaDronesSee annotations and dataset files
 │   └── annotations/        # COCO val/train JSON files
@@ -29,7 +34,7 @@ DAP/
 │   └── 03_tracking_prioritization.ipynb # Part 3: Rescue Routing Simulation
 │
 ├── paper/                  # Academic paper and compilation resources
-│   ├── maritime_sar.tex    # LaTeX source
+│   ├── main.tex            # LaTeX source
 │   ├── maritime_sar.pdf    # Compiled PDF
 │   ├── pipeline.png        # Framework pipeline diagram
 │   └── compile_latex.py    # Paper compilation script
@@ -89,7 +94,13 @@ uv run python eda_seadronessee.py
 uv run python training_pipeline.py
 ```
 
-### 7 — Regenerate notebook
+### 7 — Run the Interactive GCS Dashboard (Streamlit)
+
+```powershell
+uv run streamlit run app.py
+```
+
+### 8 — Regenerate notebook
 
 ```powershell
 uv run python generate_notebook.py
@@ -107,6 +118,7 @@ uv run python generate_notebook.py
 | Remove a package | `uv remove <package>` |
 | Run a script | `uv run python <script.py>` |
 | Run Jupyter | `uv run jupyter lab` |
+| Run Streamlit Dashboard | `uv run streamlit run app.py` |
 | Show installed packages | `uv pip list` |
 | Export requirements | `uv pip freeze > requirements.txt` |
 | Update all packages | `uv sync --upgrade` |

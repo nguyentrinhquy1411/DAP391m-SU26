@@ -77,7 +77,18 @@ Active sensing changes the sensor state to reduce uncertainty rather than passiv
 
 \section{System Overview}
 
-Figure~\ref{fig:pipeline} shows the closed-loop design. The UAV receives aligned RGB and long-wave infrared feeds, fuses them in a cross-attention module~\cite{vaswani2017attention}, and estimates target geometry and distress-state evidence. The detections are projected into geographic coordinates using UAV telemetry. A drift-aware Kalman filter maintains target tracks and inflates measurement covariance when observations are uncertain. If a target has high uncertainty and non-negligible expected risk, the UAV temporarily descends to collect a clearer view. Confirmed tracks are passed to a priority engine that schedules rescue assets.
+The closed-loop design of \aes{} is structured into two main phases: the \textit{Perception Phase} and the \textit{Decision-Making and Routing Phase} (as shown in Fig.~\ref{fig:pipeline}). The separation between these phases is defined by two levels of inputs and outputs:
+\begin{itemize}
+    \item \textbf{Level 1 (System-Level Inputs):} Aligned raw sensory feeds, including RGB frames $\mathbf{I}_{RGB}$ and thermal (LWIR) frames $\mathbf{I}_{Thermal}$, coupled with raw UAV telemetry $\mathbf{T}_{tel} = [\mathbf{p}_{UAV}, z_{UAV}, \boldsymbol{\theta}_{cam}]$ representing position, altitude, and camera attitude.
+    \item \textbf{Level 2 (Algorithm-Level Inputs for the Decision Engine):} Features extracted by the perception module, comprising victim bounding boxes $\mathbf{b}_{i,t}$, projected geographic position estimates $\mathbf{x}_{i,t}$ with spatial covariance $\boldsymbol{\Sigma}^{geo}_{i,t}$, posture belief distributions $\mathbf{b}_{i,t,k}$, epistemic uncertainty $u_{i,t}$, expected risk $\mathbb{E}[R_i(t)]$, and logistics parameters such as distance $D_i(t)$ and estimated travel time $t_{travel,i}$.
+\end{itemize}
+
+During the \textbf{Perception Phase}, raw Level 1 inputs are processed by a fused deep network to localize bounding boxes and classify victim postures. During the \textbf{Decision-Making and Routing Phase}, the \aes{} decision engine ingests the Level 2 inputs to perform three coordinated actions:
+\begin{enumerate}
+    \item \textbf{Uncertainty-Aware Tracking:} Feeds projected detections and spatial/epistemic uncertainty parameters into a Kalman filter, dynamically inflating measurement noise under wave occlusion.
+    \item \textbf{Active Sensing Trigger:} Evaluates expected risk and epistemic uncertainty to decide if the UAV should adjust its flight state by descending from patrol altitude ($z_{search}$) to verification altitude ($z_{verify}$).
+    \item \textbf{Risk-Averse Scheduling:} Computes UCB-style priority scores to sequence the rescue path over confirmed tracks, balancing victim urgency against travel latency.
+\end{enumerate}
 
 \begin{figure}[t]
   \centering
@@ -88,27 +99,45 @@ Figure~\ref{fig:pipeline} shows the closed-loop design. The UAV receives aligned
 
 \section{Method}
 
-\subsection{Evidential Detection Model}
+\subsection{Evidential Detection Model and Perception Interface}
 
-For target $i$ at time $t$, the perception module is designed to output a bounding box $\mathbf{b}_{i,t}$, a vector of spatial log variances $\mathbf{s}_{i,t}$, and non-negative evidence values $\mathbf{e}_{i,t} \in \mathbb{R}^{K}_{\geq 0}$ for $K=4$ victim states: drowning, floating, swimming, and PFD floater. In a trained implementation, the evidence values can be produced with a non-negative activation such as Softplus on top of a detector head (e.g., YOLOv8~\cite{jocher2023yolo}). In this simulation study, they are produced by a proxy oracle that depends on distance and occlusion.
+The perception module acts as the translator between Level 1 raw feeds and Level 2 algorithmic inputs. Object detection is performed using a YOLOv8~\cite{jocher2023yolo} backbone, which takes aligned RGB and thermal inputs (fused via cross-attention) to output bounding boxes $\mathbf{b}_{i,t}$ and spatial log variances $\mathbf{s}_{i,t}$.
 
-The spatial covariance in image coordinates is modeled as
+For posture classification, rather than feeding raw high-dimensional image crops, the system constructs a low-dimensional, texture-invariant geometric feature vector $\mathbf{h}_{i,t} \in \mathbb{R}^7$ for each detected target. This feature vector captures scale, location, and shape cues:
+\begin{equation}
+    \mathbf{h}_{i,t} = [w_{\text{norm}}, h_{\text{norm}}, r_{\text{asp}}, cx_{\text{norm}}, cy_{\text{norm}}, d_{\text{center}}, a_{\text{rel}}]^{\top},
+\end{equation}
+where:
+\begin{itemize}
+    \item $w_{\text{norm}} = w_{\text{bbox}} / W_{\text{frame}}$ and $h_{\text{norm}} = h_{\text{bbox}} / H_{\text{frame}}$ represent normalized bounding box width and height relative to the frame size ($W_{\text{frame}}, H_{\text{frame}}$).
+    \item $r_{\text{asp}} = w_{\text{bbox}} / (h_{\text{bbox}} + 10^{-6})$ is the aspect ratio of the bounding box.
+    \item $cx_{\text{norm}}, cy_{\text{norm}}$ are the normalized center coordinates of the bounding box.
+    \item $d_{\text{center}} = \sqrt{(cx_{\text{norm}} - 0.5)^2 + (cy_{\text{norm}} - 0.5)^2}$ measures the target's distance from the image's principal center.
+    \item $a_{\text{rel}} = (w_{\text{bbox}} \times h_{\text{bbox}}) / (W_{\text{frame}} \times H_{\text{frame}})$ represents the relative area covered by the target crop.
+\end{itemize}
+
+An Evidential Deep Learning (EDL) classifier~\cite{sensoy2018edl} (parameterized as a Multi-Layer Perceptron) takes this geometric feature vector $\mathbf{h}_{i,t}$ as input. To support safety-critical routing under wave occlusion, the EDL classifier replaces the standard Softmax output layer with a Softplus activation to predict non-negative evidence parameters $\mathbf{e}_{i,t} \in \mathbb{R}^{K}_{\geq 0}$ for $K=4$ victim states: drowning ($k=0$), floating ($k=1$), swimming ($k=2$), and PFD floater ($k=3$).
+
+The spatial covariance in image coordinates is modeled as:
 \begin{equation}
   \boldsymbol{\Sigma}^{cam}_{i,t} =
   \operatorname{diag}\!\left(\exp(s_x),\exp(s_y),\exp(s_w),\exp(s_h)\right).
 \end{equation}
-The evidence vector parameterizes a Dirichlet distribution with
+The predicted evidence values parameterize a Dirichlet distribution:
 \begin{equation}
   \alpha_{i,t,k}=e_{i,t,k}+1, \qquad
   S_{i,t}=\sum_{k=1}^{K}\alpha_{i,t,k}.
 \end{equation}
-Following the subjective logic interpretation used in evidential deep learning, the class belief mass and epistemic uncertainty are
+Following subjective logic, the class belief mass $b_{i,t,k}$ and epistemic uncertainty $u_{i,t}$ are computed as:
 \begin{equation}
   b_{i,t,k}=\frac{e_{i,t,k}}{S_{i,t}}, \qquad
-  u_{i,t}=\frac{K}{S_{i,t}}.
+  u_{i,t}=\frac{K}{S_{i,t}},
   \label{eq:edl}
 \end{equation}
-A target with little evidence for all classes has $u_{i,t}$ close to one. A target with strong class-specific evidence has lower epistemic uncertainty. This distinction is the basis for the active sensing decision.
+where $u_{i,t} \in (0, 1]$ represents the system's lack of evidence. When a victim is severely occluded by waves, the model outputs minimal evidence, resulting in $u_{i,t} \approx 1$.
+
+\paragraph{Experimental Evidential Proxy:}
+Since public maritime UAV datasets (e.g., SeaDronesSee~\cite{varga2022seadronessee}) do not provide the frame-level distress and posture labels needed to train a real visual classifier, this simulation study uses a distance- and occlusion-dependent evidential proxy oracle (\texttt{EvidentialClassifierSimulator}). The proxy models the output of a trained EDL model: under occlusion or at high altitudes ($z_{search}$), it yields low evidence values (high $u_{i,t}$); as the UAV descends to $z_{verify}$ or approaches the target, the occlusion is cleared and the proxy outputs highly class-specific evidence (low $u_{i,t}$). This allows us to rigorously evaluate the closed-loop decision rules of the \aes{} framework.
 
 \subsection{Projection and Uncertainty-Aware Tracking}
 
