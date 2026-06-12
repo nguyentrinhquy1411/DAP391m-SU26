@@ -12,15 +12,41 @@ DAP/
 ├── README.md
 ├── .venv/                  # managed by uv (gitignored)
 │
-├── eda_seadronessee.py     # SeaDronesSee EDA pipeline
-├── training_pipeline.py    # EDL model training (PyTorch + NumPy fallback)
-├── test_framework.py       # AES-RARR routing & tracking simulation
-├── generate_notebook.py    # Programmatic Jupyter notebook generator
-├── compile_latex.py        # LaTeX → PDF via YtoTech API
+├── data/                   # SeaDronesSee annotations and dataset files
+│   └── annotations/        # COCO val/train JSON files
 │
-├── maritime_sar.tex         # Academic paper (LaTeX source)
-├── maritime_sar.pdf         # Compiled paper
-└── maritime_sar_demo.ipynb  # Interactive demo notebook
+├── src/                    # Reusable framework logic and Python package
+│   ├── eda.py              # Exploratory data analysis implementation
+│   ├── dataset.py          # PyTorch SeaDronesSee dataset wrapper
+│   ├── models.py           # EDL model classes, Dirichlet loss, ECE metrics
+│   ├── tracker.py          # uncertainty-scaled Kalman Filter target tracker
+│   ├── simulator.py        # Evidential classifier simulators
+│   └── simulation.py       # Multi-victim active sensing routing simulation
+│
+├── notebook/               # Modular Jupyter notebooks
+│   ├── 01_eda.ipynb        # Part 1: Exploratory Data Analysis
+│   ├── 02_edl_training.ipynb # Part 2: EDL Model Training
+│   └── 03_tracking_prioritization.ipynb # Part 3: Rescue Routing Simulation
+│
+├── paper/                  # Academic paper and compilation resources
+│   ├── maritime_sar.tex    # LaTeX source
+│   ├── maritime_sar.pdf    # Compiled PDF
+│   ├── pipeline.png        # Framework pipeline diagram
+│   └── compile_latex.py    # Paper compilation script
+│
+├── models/                 # Model weight artifact files
+│   ├── edl_weights.pth     # Trained PyTorch weights
+│   └── edl_model_weights.npz # NumPy fallback weights
+│
+├── docs/                   # General documentation files
+│   ├── edl_inputs_outputs.md # Evidential network feature specification
+│   └── eda_summary_report.txt # Exploratory analysis summary report
+│
+├── eda_seadronessee.py     # Root CLI wrapper for EDA pipeline
+├── training_pipeline.py    # Root CLI wrapper for EDL training (PyTorch/NumPy)
+├── test_framework.py       # Root CLI wrapper for routing simulation
+├── generate_notebook.py    # Recompiles all root and modular notebooks
+└── maritime_sar_demo.ipynb  # Main end-to-end interactive demo notebook
 ```
 
 ---

@@ -2,78 +2,12 @@ import os
 import json
 import numpy as np
 
+from src.simulator import EvidentialClassifier
+from src.tracker import UncertaintyKalmanFilter
+
 # 1. Configuration for Kagglehub and Content Target Paths
 DATASET_ID = "ubiratanfilho/sds-dataset"
 TARGET_PATH = "/content/sds-dataset"
-
-class EvidentialClassifier:
-    """
-    Simulates Evidential Deep Learning (EDL) output for posture classification.
-    Postures: 0: Drowning, 1: Floating, 2: Swimming, 3: Life-Jacket-Floater
-    """
-    def __init__(self, num_classes=4):
-        self.num_classes = num_classes
-        self.risk_weights = np.array([1.0, 0.4, 0.2, 0.1])
-        
-    def estimate(self, true_class, distance, occluded=False):
-        """Generates Dirichlet evidence parameters based on target distance and wave occlusion."""
-        evidence = np.zeros(self.num_classes)
-        
-        if occluded:
-            # Wave occlusion introduces high-entropy, low evidence
-            evidence += np.random.uniform(0.05, 0.2, self.num_classes)
-        else:
-            # Evidence decays with distance (inverse relationship)
-            max_ev = max(0.5, 12.0 - 0.05 * distance)
-            evidence += 0.05 # small base noise
-            evidence[true_class] += max_ev
-            evidence += np.random.uniform(0.0, 0.1, self.num_classes)
-            
-        alpha = evidence + 1.0
-        S = np.sum(alpha)
-        
-        # Subjective Logic formalism
-        beliefs = evidence / S
-        u = self.num_classes / S
-        probs = alpha / S
-        
-        return beliefs, u, probs
-
-
-class UncertaintyKalmanFilter:
-    """
-    Kalman Filter state tracker with dynamic observation covariance scaling.
-    State vector: [x_pos, y_pos, x_vel, y_vel]^T
-    """
-    def __init__(self, dt=1.0):
-        self.dt = dt
-        self.F = np.array([
-            [1.0, 0.0, dt,  0.0],
-            [0.0, 1.0, 0.0, dt ],
-            [0.0, 0.0, 1.0, 0.0],
-            [0.0, 0.0, 0.0, 1.0]
-        ])
-        self.H = np.array([
-            [1.0, 0.0, 0.0, 0.0],
-            [0.0, 1.0, 0.0, 0.0]
-        ])
-        self.Q = np.eye(4) * 1e-5
-        self.P = np.eye(4) * 1.0
-        
-    def predict(self, state, current_drift):
-        drift_vec = np.array([0.0, 0.0, current_drift[0], current_drift[1]])
-        state_pred = self.F @ state + drift_vec
-        self.P = self.F @ self.P @ self.F.T + self.Q
-        return state_pred
-        
-    def update(self, state_pred, measurement, spatial_cov, epistemic_unc, gamma=2.0):
-        R = spatial_cov + gamma * epistemic_unc * np.eye(2)
-        S_cov = self.H @ self.P @ self.H.T + R
-        K = self.P @ self.H.T @ np.linalg.inv(S_cov)
-        innovation = measurement - self.H @ state_pred
-        state_updated = state_pred + K @ innovation
-        self.P = (np.eye(4) - K @ self.H) @ self.P
-        return state_updated
 
 
 def load_actual_dataset():
@@ -84,8 +18,9 @@ def load_actual_dataset():
     print("KAGGLEHUB DATASET LOADING & PARSING")
     print("="*80)
     
-    # Check standard local paths first
+    # Check standard local paths first (prioritizing /data)
     local_paths = [
+        "./data/annotations/instances_val.json",
         "./archive/compressed/annotations/instances_val.json",
         "./archive/annotations/instances_val.json",
         "./sds-dataset/annotations/instances_val.json"
@@ -233,14 +168,14 @@ def run_fallback_simulation():
     uav_speed = 5.0
     ocean_current = np.array([0.1, -0.05])
     
-    victims = {
+    victicks = {
         1: {"state": np.array([80.0, 60.0, 0.0, 0.0]), "class": 0, "occluded": True,  "decay": 0.08, "name": "Victim A (Drowning, Occluded)"},
         2: {"state": np.array([40.0, -30.0, 0.0, 0.0]), "class": 2, "occluded": False, "decay": 0.02, "name": "Victim B (Swimming, Clear)"},
         3: {"state": np.array([10.0, 20.0, 0.0, 0.0]), "class": 3, "occluded": False, "decay": 0.005, "name": "Victim C (PFD Floater)"}
     }
     
-    trackers = {i: UncertaintyKalmanFilter(dt) for i in victims}
-    states = {i: victims[i]["state"].copy() for i in victims}
+    trackers = {i: UncertaintyKalmanFilter(dt) for i in victicks}
+    states = {i: victicks[i]["state"].copy() for i in victicks}
     
     for step in range(1, 4): # Run 3 quick steps for demonstration
         print(f"\n--- STEP {step} ---")
@@ -251,7 +186,7 @@ def run_fallback_simulation():
         priorities = {}
         target_positions = {}
         
-        for vid, data in victims.items():
+        for vid, data in victicks.items():
             data["state"][:2] += ocean_current * dt + np.random.normal(0, 0.2, 2)
             true_pos = data["state"][:2]
             dist = np.linalg.norm(true_pos - uav_pos)
@@ -281,7 +216,7 @@ def run_fallback_simulation():
             print(f"{vid}: {data['name'][:25]:<22} | {dist:<8.2f} | {epistemic_unc:<8.3f} | {exp_risk:<8.3f} | {priority_score:<8.3f}")
             
         best_target = max(priorities, key=priorities.get)
-        print(f"--> UAV Active Allocation: Hovering toward Target {best_target} ({victims[best_target]['name']})")
+        print(f"--> UAV Active Allocation: Hovering toward Target {best_target} ({victicks[best_target]['name']})")
         uav_pos += ((target_positions[best_target] - uav_pos) / (np.linalg.norm(target_positions[best_target] - uav_pos) + 1e-5)) * uav_speed * dt
 
 
