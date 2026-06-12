@@ -31,10 +31,11 @@ def run_simulation(mode: str,
                    sim_steps=SIM_STEPS_DEFAULT, 
                    rescue_dist=RESCUE_DIST_DEFAULT, 
                    decay_rates=DECAY_RATES_DEFAULT, 
-                   victim_init=VICTIM_INIT_DEFAULT):
+                   victim_init=VICTIM_INIT_DEFAULT,
+                   descent_latency=1.0):
     """
-    Runs target tracking and UAV search & rescue routing simulation under three modes:
-    'aes_rarr' | 'deterministic' | 'distance_router'
+    Runs target tracking and UAV search & rescue routing simulation under five modes:
+    'aes_rarr' | 'no_branch' | 'static_R' | 'deterministic' | 'distance_router'
     """
     clf = EvidentialClassifierSimulator()
     uav = np.array([0.0, 0.0])
@@ -46,18 +47,23 @@ def run_simulation(mode: str,
         "occluded":      d["occluded"],
         "name":          d["name"],
         "rescued":       False,
-        "rescue_step":   None,
+        "rescue_time":   None,
         "active_branch": False,
     } for vid, d in victim_init.items()}
     
     trs = {vid: UncertaintyKalmanFilter() for vid in vics}
     sts = {vid: vics[vid]["state"].copy() for vid in vics}
     branches = 0
+    cumulative_time = 0.0
+    total_descent_attempts = 0
+    true_positive_descents = 0
+    best_last = None
 
     for step in range(1, sim_steps + 1):
         branch_step = False
         pris = {}
         tpos = {}
+        cumulative_time += 1.0
 
         for vid, data in vics.items():
             if data["rescued"]:
@@ -69,33 +75,43 @@ def run_simulation(mode: str,
             dist = np.linalg.norm(tp - uav)
 
             # Altitude factor: active branch = descended UAV -> tighter cov
-            alt_f = 0.25 if (mode == "aes_rarr" and data["active_branch"]) else 1.0
+            has_active_branch = (mode in ["aes_rarr", "static_R"] and data["active_branch"])
+            alt_f = 0.25 if has_active_branch else 1.0
             sc = np.eye(2) * ((0.5 + 0.008 * dist) ** 2) * alt_f
             meas = tp + np.random.multivariate_normal([0, 0], sc)
 
             beliefs, u, probs = clf.estimate(data["class"], dist, data["occluded"])
             er = float(np.sum(probs * clf.risk_weights))
 
-            # Kalman update — dynamic R only for AES-RARR
-            g_use = gamma_r if mode == "aes_rarr" else 0.0
-            u_use = u       if mode == "aes_rarr" else 0.0
+            # Kalman update — dynamic R only for aes_rarr and no_branch
+            g_use = gamma_r if mode in ["aes_rarr", "no_branch"] else 0.0
+            u_use = u       if mode in ["aes_rarr", "no_branch"] else 0.0
             sts[vid] = trs[vid].update(
                 trs[vid].predict(sts[vid], ocean_drift), meas, sc, u_use, g_use)
 
             # Active sensing branch trigger
-            if mode == "aes_rarr":
-                if u > tau_unc and er > 0.3:
+            if mode in ["aes_rarr", "static_R"]:
+                if best_last == vid and dist <= 20.0 and u > tau_unc and er > 0.3:
                     data["active_branch"] = True   # flag: descend next step
+                    data["occluded"] = False       # descent clears occlusion!
                     branch_step = True
+                    total_descent_attempts += 1
+                    if data["class"] in [0, 1]:  # Drowning (0) or Floating (1)
+                        true_positive_descents += 1
                 else:
                     data["active_branch"] = False
                     if dist < 12.0:                # proximity clears occlusion
                         data["occluded"] = False
+            else:
+                data["active_branch"] = False
 
             # Priority score computation
             tt = dist / uav_speed
+            if mode in ["aes_rarr", "static_R"] and data["active_branch"]:
+                tt += descent_latency
+
             decay = decay_rates[data["class"]]
-            if mode == "aes_rarr":
+            if mode in ["aes_rarr", "no_branch", "static_R"]:
                 # Risk-UCB: boosts uncertain high-risk victims early
                 p_raw = er + lambda_ra * u * (1.0 - er)
                 score = (p_raw * math.exp(decay * tt)) / (dist + 1.0)
@@ -111,10 +127,12 @@ def run_simulation(mode: str,
 
         if branch_step:
             branches += 1
+            cumulative_time += descent_latency
         if not pris:
             break
 
         best = max(pris, key=pris.get)
+        best_last = best
         d_dir = tpos[best] - uav
         d_norm = np.linalg.norm(d_dir)
         uav = tpos[best].copy() if d_norm <= uav_speed else uav + (d_dir / d_norm) * uav_speed
@@ -123,20 +141,23 @@ def run_simulation(mode: str,
         for vid in list(pris.keys()):
             if np.linalg.norm(tpos[vid] - uav) <= rescue_dist and not vics[vid]["rescued"]:
                 vics[vid]["rescued"] = True
-                vics[vid]["rescue_step"] = step
+                vics[vid]["rescue_time"] = cumulative_time
 
     # Compute TTR and VSR per victim
+    precision = true_positive_descents / total_descent_attempts if total_descent_attempts > 0 else 0.0
     results = []
     for vid, data in vics.items():
         mu = decay_rates[data["class"]]
-        ttr = data["rescue_step"] if data["rescued"] else sim_steps
+        ttr = data["rescue_time"] if data["rescued"] else cumulative_time
         # VSR = survival prob at rescue (0.5x penalty if never rescued)
         vsr = math.exp(-mu * ttr) * (1.0 if data["rescued"] else 0.5)
         results.append({
             "Victim":        data["name"],
             "Mode":          mode,
-            "TTR (steps)":   ttr if data["rescued"] else f">{sim_steps}",
+            "TTR (steps)":   round(ttr, 2) if data["rescued"] else f">{round(cumulative_time, 2)}",
             "VSR":           round(vsr, 4),
             "Rescued":       "Yes" if data["rescued"] else "No",
+            "TrueClass":     data["class"],
+            "branch_precision": round(precision, 4)
         })
     return results, branches

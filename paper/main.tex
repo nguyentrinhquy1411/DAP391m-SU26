@@ -77,7 +77,7 @@ Active sensing changes the sensor state to reduce uncertainty rather than passiv
 
 \section{System Overview}
 
-Figure~\ref{fig:pipeline} shows the closed-loop design. The UAV receives aligned RGB and long-wave infrared feeds, fuses them in a cross-attention module, and estimates target geometry and distress-state evidence. The detections are projected into geographic coordinates using UAV telemetry. A drift-aware Kalman filter maintains target tracks and inflates measurement covariance when observations are uncertain. If a target has high uncertainty and non-negligible expected risk, the UAV temporarily descends to collect a clearer view. Confirmed tracks are passed to a priority engine that schedules rescue assets.
+Figure~\ref{fig:pipeline} shows the closed-loop design. The UAV receives aligned RGB and long-wave infrared feeds, fuses them in a cross-attention module~\cite{vaswani2017attention}, and estimates target geometry and distress-state evidence. The detections are projected into geographic coordinates using UAV telemetry. A drift-aware Kalman filter maintains target tracks and inflates measurement covariance when observations are uncertain. If a target has high uncertainty and non-negligible expected risk, the UAV temporarily descends to collect a clearer view. Confirmed tracks are passed to a priority engine that schedules rescue assets.
 
 \begin{figure}[t]
   \centering
@@ -86,13 +86,11 @@ Figure~\ref{fig:pipeline} shows the closed-loop design. The UAV receives aligned
   \label{fig:pipeline}
 \end{figure}
 
-The new pipeline figure is appropriate for a paper because it separates sensing, tracking, active verification, and routing into visually distinct modules. Compared with pseudocode-style diagrams, it better communicates the feedback loop between uncertainty estimation and UAV control. The figure should remain as a system overview rather than a replacement for the mathematical definitions in the method section.
-
 \section{Method}
 
 \subsection{Evidential Detection Model}
 
-For target $i$ at time $t$, the perception module is designed to output a bounding box $\mathbf{b}_{i,t}$, a vector of spatial log variances $\mathbf{s}_{i,t}$, and non-negative evidence values $\mathbf{e}_{i,t} \in \mathbb{R}^{K}_{\geq 0}$ for $K=4$ victim states: drowning, floating, swimming, and PFD floater. In a trained implementation, the evidence values can be produced with a non-negative activation such as Softplus on top of a detector head. In this simulation study, they are produced by a proxy oracle that depends on distance and occlusion.
+For target $i$ at time $t$, the perception module is designed to output a bounding box $\mathbf{b}_{i,t}$, a vector of spatial log variances $\mathbf{s}_{i,t}$, and non-negative evidence values $\mathbf{e}_{i,t} \in \mathbb{R}^{K}_{\geq 0}$ for $K=4$ victim states: drowning, floating, swimming, and PFD floater. In a trained implementation, the evidence values can be produced with a non-negative activation such as Softplus on top of a detector head (e.g., YOLOv8~\cite{jocher2023yolo}). In this simulation study, they are produced by a proxy oracle that depends on distance and occlusion.
 
 The spatial covariance in image coordinates is modeled as
 \begin{equation}
@@ -158,7 +156,7 @@ The risk-averse posture score is
   +\lambda U_i(t)\left(w_{drown}-\mathbb{E}[R_i(t)]\right),
   \label{eq:rap}
 \end{equation}
-where $\lambda \in [0,1]$ is a risk-aversion parameter. Equation~(\ref{eq:rap}) is inspired by upper-confidence-bound reasoning, but it is not claimed to have formal bandit regret guarantees. It interpolates between the current expected risk and the maximum drowning risk when uncertainty is high.
+where $\lambda \in [0,1]$ is a risk-aversion parameter. Equation~(\ref{eq:rap}) is inspired by upper-confidence-bound reasoning~\cite{auer2002ucb}, but it is not claimed to have formal bandit regret guarantees. It interpolates between the current expected risk and the maximum drowning risk when uncertainty is high.
 
 Let $D_i(t)$ be the distance from the rescue asset to target $i$, $v_{agent}$ be rescue speed, and $t_{travel,i}=D_i(t)/v_{agent}$. The final logistics-aware score is
 \begin{equation}
@@ -172,7 +170,7 @@ where $\eta_i$ is the posture-dependent survival decay rate and $\epsilon$ preve
 
 \subsection{Simulation Setting}
 
-The simulation uses a planar maritime scene with victims drifting under a fixed ocean-current term $\boldsymbol{v}_{drift}=[0.1,-0.05]$ m per step. Experiments run for 100 independent Monte Carlo trials. Unless otherwise stated, each trial contains three victims, 30\% initial occlusion probability, and a horizon of 30 time steps. The UAV searches at $z_{search}=40$ m and verifies at $z_{verify}=10$ m, so $\rho=0.25$. The descent speed is set to $v_{\downarrow}=3$ m/s. Other parameters are $\tau_{unc}=0.55$, $\tau_{risk}=0.30$, $\lambda=0.80$, $\gamma=2.0$, $v_{agent}=10$ m per step, and $d_{rescue}=5$ m.
+The simulation uses a planar maritime scene with victims drifting under a fixed ocean-current term $\boldsymbol{v}_{drift}=[0.1,-0.05]$ m per step. Experiments run for 100 independent Monte Carlo trials. Unless otherwise stated, each trial contains three victims, 30\% initial occlusion probability, and a horizon of 30 time steps. The UAV searches at $z_{search}=40$ m and verifies at $z_{verify}=20$ m, so $\rho=0.5$ and $\rho^2=0.25$. The descent speed is set to $v_{\downarrow}=3$ m/s. Other parameters are $\tau_{unc}=0.55$, $\tau_{risk}=0.30$, $\lambda=0.80$, $\gamma=2.0$, $v_{agent}=10$ m per step, and $d_{rescue}=5$ m.
 
 The distress-state decay rates are
 \begin{equation}
@@ -195,7 +193,7 @@ The main safety metric is worst-case survival, $\min_i \vsr_i$, because SAR poli
 
 \section{Results}
 
-Table~\ref{tab:main_results} summarizes the main Monte Carlo results for three-victim scenarios. The full \aes system obtains the best worst-case survival and the lowest catastrophic failure rate. It improves worst-case survival from $0.30 \pm 0.11$ under the deterministic expected-risk baseline to $0.52 \pm 0.08$. The deterministic baseline has a slightly higher mean survival, but this comes from serving easier victims first while allowing the worst casualty to deteriorate. In this setting, mean survival alone hides the safety failure.
+Table~\ref{tab:main_results} summarizes the main Monte Carlo results for three-victim scenarios. Under the tested simulation protocol where victims are randomly distributed, we observe that the distance router baseline achieves the lowest mean TTR ($10.49 \pm 3.08$ steps) but suffers from the worst safety outcomes, with a worst-case victim survival rate (Worst VSR) of $0.38 \pm 0.21$ and a catastrophic failure rate (CFR) of $0.50$. In contrast, routing based on posture expected risk (both deterministic and UCB-based) prioritizes high-risk drowning victims, improving the Worst VSR to approximately $0.48 \pm 0.18$ and reducing CFR to $0.28$--$0.29$.
 
 \begin{table}[t]
 \centering
@@ -208,22 +206,22 @@ Table~\ref{tab:main_results} summarizes the main Monte Carlo results for three-v
 \toprule
 \textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{TTR}} & \textbf{CFR} & \makecell{\textbf{Branch}\\\textbf{Precision}} \\
 \midrule
-\aes{} full & \textbf{$0.52\pm0.08$} & $0.61\pm0.05$ & $6.8\pm1.9$ & \textbf{0.06} & \textbf{$0.89\pm0.07$} \\
-No active branch & $0.35\pm0.10$ & $0.63\pm0.06$ & 0 & 0.38 & n/a \\
-Static measurement covariance & $0.48\pm0.09$ & $0.60\pm0.05$ & $6.5\pm2.1$ & 0.12 & $0.85\pm0.09$ \\
-Deterministic expected risk & $0.30\pm0.11$ & \textbf{$0.65\pm0.05$} & 0 & 0.52 & n/a \\
-Distance router & $0.41\pm0.12$ & $0.62\pm0.06$ & 0 & 0.24 & n/a \\
+\aes{} full                    & \textbf{$0.46\pm0.18$} & $0.62\pm0.13$ & $12.30\pm3.85$ & \textbf{0.29} & \textbf{$0.48 \pm 0.48$} \\
+No active branch               & $0.48\pm0.18$ & $0.63\pm0.13$ & $11.68\pm3.73$ & 0.28 & n/a \\
+Static measurement covariance  & $0.46\pm0.18$ & $0.62\pm0.13$ & $12.30\pm3.86$ & 0.30 & $0.48 \pm 0.48$ \\
+Deterministic expected risk    & $0.48\pm0.18$ & \textbf{$0.63\pm0.13$} & $12.01\pm3.85$ & 0.29 & n/a \\
+Distance router                & $0.38\pm0.21$ & $0.64\pm0.12$ & $10.49\pm3.08$ & 0.50 & n/a \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-The no-branch ablation confirms that active verification is the main source of the safety gain. When the branch is disabled, worst-case survival falls to $0.35 \pm 0.10$ and CFR increases to 0.38. The static-$R$ ablation performs better than the deterministic baseline but worse than the full model, indicating that covariance scaling helps maintain stable tracks during uncertain observations. The branch precision of $0.89 \pm 0.07$ suggests that the uncertainty threshold is not simply causing frequent unnecessary descent in the tested scenario.
+When active verification is enabled (\aes{} full), the UAV triggers an average of $0.8$ lower-altitude verification passes to resolve posture uncertainty under wave occlusion. While active descent clears wave occlusion and provides higher-fidelity posture evidence, it introduces a flight latency penalty (descent and ascent time). In a small 3-victim scenario without clutter, this latency penalty increases the mean TTR slightly from $11.68 \pm 3.73$ steps (No active branch) to $12.30 \pm 3.85$ steps, which slightly offsets the local safety gain, resulting in a Worst VSR of $0.46 \pm 0.18$ and a CFR of $0.29$. This trade-off highlights that active verification is not a free operation; its benefits in resolving posture uncertainty must be balanced against the flight time penalty, which is especially critical in time-sensitive search and rescue missions.
 
-Table~\ref{tab:robustness} reports robustness trends from the sensitivity runs described in the source experiment. These values are used only where they were available in the previous report. Some conditions were described qualitatively without a complete table of standard deviations, so the table avoids adding unverified error bars.
+Table~\ref{tab:robustness} evaluates the robustness of the routing policies under more challenging conditions: a high wave occlusion rate ($70\%$) and high victim density ($N=10$). Under $70\%$ initial occlusion, the Worst VSR for the full \aes{} system is $0.43 \pm 0.15$ with a CFR of $0.29$, compared to $0.48 \pm 0.15$ and a CFR of $0.17$ for the deterministic expected risk baseline. With $N=10$ victims, both methods experience high resource congestion, with Worst VSR dropping to $0.16 \pm 0.08$ (\aes{} full) and $0.18 \pm 0.10$ (Deterministic expected risk) due to the limited speed and flight horizon of a single UAV.
 
 \begin{table}[t]
 \centering
-\caption{Reported robustness checks from the simulation study. Entries without standard deviations are taken from aggregate values described in the previous report, not from a complete raw result table.}
+\caption{Robustness checks under high occlusion and density.}
 \label{tab:robustness}
 \small
 \setlength{\tabcolsep}{5pt}
@@ -232,17 +230,18 @@ Table~\ref{tab:robustness} reports robustness trends from the sensitivity runs d
 \toprule
 \textbf{Condition} & \textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \textbf{CFR} \\
 \midrule
-70\% initial occlusion & \aes{} full & n/r & 0.14 \\
-70\% initial occlusion & Deterministic expected risk & n/r & 0.78 \\
-$N=10$ victims & \aes{} full & $0.34\pm0.06$ & n/r \\
-$N=10$ victims & Deterministic expected risk & $0.11\pm0.04$ & n/r \\
+70\% initial occlusion & \aes{} full & $0.43\pm0.15$ & 0.29 \\
+70\% initial occlusion & Deterministic expected risk & $0.48\pm0.15$ & 0.17 \\
+\midrule
+$N=10$ victims & \aes{} full & $0.16\pm0.08$ & 0.98 \\
+$N=10$ victims & Deterministic expected risk & $0.18\pm0.10$ & 0.98 \\
 \bottomrule
 \end{tabularx}
-\vspace{2pt}
-\footnotesize n/r means not reported in the available source material.
 \end{table}
 
-The threshold sweep in the previous report indicates a trade-off. A low uncertainty threshold such as $\tau_{unc}=0.3$ triggers too many descents and reduces branch precision. A high threshold such as $\tau_{unc}=0.9$ delays verification until the behavior approaches the no-branch case. The chosen value $\tau_{unc}=0.55$ is therefore used as a working operating point rather than a universal optimum. A deployment system would need to tune this threshold for aircraft speed, camera resolution, sea state, and acceptable risk.
+A key limitation of the current simulation protocol is the absence of visual distractors (e.g., buoys, floating debris, waves resembling objects). In a real-world setting, a deterministic router without verification would waste valuable rescue assets on false alarms, whereas the active verification branch of \aes{} is designed to filter out such distractors before committing rescue assets. Since every visited target in this simulation is a real victim, the active branch trigger rate of $0.48$ precision reflects the difficulty of classifying postures under wave occlusion, but the lack of distractors means that the safety benefits of verification are under-represented relative to its latency cost.
+
+A parameter sweep over the uncertainty threshold indicates a trade-off. A low uncertainty threshold such as $\tau_{unc}=0.3$ triggers too many descents and reduces branch precision due to unnecessary hovering. A high threshold such as $\tau_{unc}=0.9$ delays verification until the behavior approaches the no-branch case. The chosen value $\tau_{unc}=0.55$ is therefore used as a working operating point rather than a universal optimum. A deployment system would need to tune this threshold for aircraft speed, camera resolution, sea state, and acceptable risk.
 
 \section{Comparison with Prior Systems}
 

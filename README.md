@@ -119,10 +119,10 @@ uv run python generate_notebook.py
 
 | Module | Description |
 |--------|-------------|
-| **EDL Detector** | YOLOv8 + Evidential head → aleatoric & epistemic uncertainty |
-| **ECF Tracker** | Evidential Kalman Filter, `R ∝ u_epistemic` |
-| **Risk Scorer** | Composite score: vitals × exposure × time-criticality |
-| **U-Aware Router** | OR-Tools VRP solver with uncertainty-penalised costs |
+| **EDL Classifier** | Simulated evidential proxy oracle predicting posture belief masses and epistemic uncertainty (with PyTorch/NumPy training logic on geometric features for demonstration). |
+| **Uncertainty Kalman Filter** | Constant-velocity Kalman Filter tracking target coordinates under ocean current drift, with dynamic measurement covariance scaling $R \propto u_{epistemic}$. |
+| **Risk-UCB Priority Engine** | Prioritization engine ranking victims based on expected posture risk, epistemic uncertainty, travel time, and survive decay rate. |
+| **Active Sensing Router** | Greedy routing simulator managing active descent verification passes (descending from search to verification altitude) and rescue decisions. |
 
 ---
 
