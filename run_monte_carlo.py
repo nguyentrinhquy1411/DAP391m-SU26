@@ -15,7 +15,7 @@ def cohens_d(x, y):
     diff = np.array(x) - np.array(y)
     return np.mean(diff) / (np.std(diff, ddof=1) + 1e-12)
 
-def run_experiment(num_victims, occlusion_prob, num_trials=100, 
+def run_experiment(num_victims, occlusion_prob, num_trials=500, 
                    num_distractors=0, sea_state="moderate"):
     modes = ["aes_rarr", "no_branch", "static_R", "deterministic", "distance_router"]
     
@@ -28,6 +28,7 @@ def run_experiment(num_victims, occlusion_prob, num_trials=100,
         "total_branches": [],
         "distractors_filtered": [],
         "distractors_visited": [],
+        "rpes": [],
     } for mode in modes}
     
     # Sea state affects occlusion dynamics
@@ -78,16 +79,11 @@ def run_experiment(num_victims, occlusion_prob, num_trials=100,
                 mode=mode, 
                 victim_init=victim_init, 
                 descent_latency=1.0, 
-                sim_steps=40 if (num_victims + num_distractors) > 5 else 30
+                sim_steps=40 if (num_victims + num_distractors) > 5 else 30,
+                max_payload=num_victims
             )
             
             # Separate real victims from distractors in results
-            real_results = [r for r in res_list if not victim_init.get(
-                int(r["Victim"].split()[1].split("(")[0]) if "Victim" in r["Victim"] else 999, 
-                {"is_distractor": True}
-            ).get("is_distractor", False)]
-            
-            # Simpler: filter by name
             real_results = [r for r in res_list if "Distractor" not in r["Victim"]]
             distractor_results = [r for r in res_list if "Distractor" in r["Victim"]]
             
@@ -108,12 +104,18 @@ def run_experiment(num_victims, occlusion_prob, num_trials=100,
             dist_visited = sum(1 for r in distractor_results if r["Rescued"] == "Yes")
             dist_filtered = len(distractor_results) - dist_visited
             
+            # Compute Rescue Package Efficiency (RPE)
+            real_rescued = sum(1 for r in real_results if r["Rescued"] == "Yes")
+            total_dropped = real_rescued + dist_visited
+            rpe = real_rescued / total_dropped if total_dropped > 0 else 1.0
+            
             results[mode]["worst_vsr"].append(worst_vsr)
             results[mode]["mean_vsr"].append(mean_vsr)
             results[mode]["mean_ttr"].append(mean_ttr)
             results[mode]["total_branches"].append(branches)
             results[mode]["distractors_filtered"].append(dist_filtered)
             results[mode]["distractors_visited"].append(dist_visited)
+            results[mode]["rpes"].append(rpe)
             
             if worst_vsr < 0.35:
                 results[mode]["cfr"] += 1
@@ -139,6 +141,9 @@ def run_experiment(num_victims, occlusion_prob, num_trials=100,
         else:
             prec_str = "n/a"
             
+        rpe_m = np.mean(results[mode]["rpes"])
+        rpe_s = np.std(results[mode]["rpes"])
+        
         summary[mode] = {
             "worst_vsr": (w_vsr_m, w_vsr_s),
             "mean_vsr": (m_vsr_m, m_vsr_s),
@@ -146,6 +151,7 @@ def run_experiment(num_victims, occlusion_prob, num_trials=100,
             "cfr": cfr_val,
             "precision_str": prec_str,
             "branches": avg_branches,
+            "rpe": (rpe_m, rpe_s),
             "raw_worst_vsr": results[mode]["worst_vsr"],
             "raw_mean_vsr": results[mode]["mean_vsr"],
             "raw_mean_ttr": results[mode]["mean_ttr"],
@@ -263,9 +269,9 @@ def main():
         "distance_router": "Distance router"
     }
     
-    print(r"""\begin{tabularx}{\textwidth}{p{2.8cm}CCCCC}
+    print(r"""\begin{tabularx}{\textwidth}{p{2.8cm}CCCCCC}
 \toprule
-\textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{TTR}} & \textbf{CFR} & \makecell{\textbf{Branch}\\\textbf{Precision}} \\
+\textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{TTR}} & \textbf{CFR} & \textbf{RPE} & \makecell{\textbf{Branch}\\\textbf{Precision}} \\
 \midrule""")
     
     for mode in ["aes_rarr", "no_branch", "static_R", "deterministic", "distance_router"]:
@@ -274,11 +280,12 @@ def main():
         mean_vsr_str = f"${m['mean_vsr'][0]:.2f}\\pm{m['mean_vsr'][1]:.2f}$"
         mean_ttr_str = f"${m['mean_ttr'][0]:.2f}\\pm{m['mean_ttr'][1]:.2f}$"
         cfr_str = f"{m['cfr']:.2f}"
+        rpe_str = f"${m['rpe'][0]:.2f}\\pm{m['rpe'][1]:.2f}$"
         prec_str = m['precision_str']
         if prec_str != "n/a":
             prec_str = f"${prec_str}$"
         
-        print(f"{method_latex_map[mode]:<30} & {worst_str} & {mean_vsr_str} & {mean_ttr_str} & {cfr_str} & {prec_str} \\\\")
+        print(f"{method_latex_map[mode]:<30} & {worst_str} & {mean_vsr_str} & {mean_ttr_str} & {cfr_str} & {rpe_str} & {prec_str} \\\\")
         
     print(r"""\bottomrule
 \end{tabularx}""")

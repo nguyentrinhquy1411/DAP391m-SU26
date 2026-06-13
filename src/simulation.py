@@ -33,17 +33,47 @@ VICTIM_INIT_DEFAULT = {
 }
 
 _crop_cache = {}
+_crop_cache_initialized = False
+
+# Global cache for the PyTorch Evidential CNN model
+_cnn_model_cache = None
+_cnn_model_device = None
+
+def get_cnn_model():
+    global _cnn_model_cache, _cnn_model_device
+    if not TORCH_AVAILABLE:
+        return None, None
+    if _cnn_model_cache is not None:
+        return _cnn_model_cache, _cnn_model_device
+        
+    weights_path = "models/edl_weights.pth"
+    if os.path.exists(weights_path):
+        try:
+            from src.models import EvidentialCNNClassifier
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+            model = EvidentialCNNClassifier(num_classes=5) # 5 categories
+            model.load_state_dict(torch.load(weights_path, map_location=device))
+            model.to(device)
+            model.eval()
+            _cnn_model_cache = model
+            _cnn_model_device = device
+        except Exception as e:
+            print(f"[Warning] Simulation failed to load EDL CNN weights ({e}). Using proxy.")
+            _cnn_model_cache = None
+            _cnn_model_device = None
+    return _cnn_model_cache, _cnn_model_device
 
 def get_class_crop_sample(true_class, base_dir="data/images", annotations_path="data/annotations/instances_val.json"):
     """
     Caches and returns a random real crop from the SeaDronesSee validation set
     corresponding to the simulated victim's category class.
     """
-    global _crop_cache
+    global _crop_cache, _crop_cache_initialized
     if not TORCH_AVAILABLE:
         return None
         
-    if not _crop_cache:
+    if not _crop_cache_initialized:
+        _crop_cache_initialized = True
         # Load validation annotations and cache some samples
         if not os.path.exists(annotations_path):
             return None
@@ -165,7 +195,8 @@ def run_simulation(mode: str,
                    decay_rates=DECAY_RATES_DEFAULT, 
                    victim_init=VICTIM_INIT_DEFAULT,
                    descent_latency=1.0,
-                   return_history=False):
+                   return_history=False,
+                   max_payload=None):
     """
     Runs target tracking and UAV search & rescue routing simulation under five modes:
     'aes_rarr' | 'no_branch' | 'static_R' | 'deterministic' | 'distance_router'
@@ -195,22 +226,10 @@ def run_simulation(mode: str,
     total_descent_attempts = 0
     true_positive_descents = 0
     best_last = None
+    remaining_payload = max_payload
 
-    # Load real Evidential CNN weights if torch is available
-    cnn_model = None
-    if TORCH_AVAILABLE:
-        from src.models import EvidentialCNNClassifier
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        weights_path = "models/edl_weights.pth"
-        if os.path.exists(weights_path):
-            try:
-                cnn_model = EvidentialCNNClassifier(num_classes=5) # 5 categories
-                cnn_model.load_state_dict(torch.load(weights_path, map_location=device))
-                cnn_model.to(device)
-                cnn_model.eval()
-            except Exception as e:
-                print(f"[Warning] Simulation failed to load EDL CNN weights ({e}). Using proxy.")
-                cnn_model = None
+    # Load real Evidential CNN weights if torch is available (globally cached)
+    cnn_model, device = get_cnn_model()
 
     for step in range(1, sim_steps + 1):
         branch_step = False
@@ -361,8 +380,11 @@ def run_simulation(mode: str,
         # Rescue check
         for vid in list(pris.keys()):
             if np.linalg.norm(tpos[vid] - uav) <= rescue_dist and not vics[vid]["rescued"] and not vics[vid]["filtered_out"]:
-                vics[vid]["rescued"] = True
-                vics[vid]["rescue_time"] = cumulative_time
+                if remaining_payload is None or remaining_payload > 0:
+                    vics[vid]["rescued"] = True
+                    vics[vid]["rescue_time"] = cumulative_time
+                    if remaining_payload is not None:
+                        remaining_payload -= 1
 
         if return_history:
             step_vic_data = {}

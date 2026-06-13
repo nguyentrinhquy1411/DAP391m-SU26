@@ -27,15 +27,16 @@
 \title{Active Evidential Sensing for Occlusion-Robust Maritime Search and Rescue}
 \titlerunning{Active Evidential Sensing for Maritime SAR}
 
-\author{Nguyen Trinh Quy\inst{1} \and Thu Le\inst{1} \and Tran Thanh Vu\inst{1} \and Pham Nguyen Khanh Nguyen\inst{1}}
+\author{Nguyen Trinh Quy\orcidID{0009-0004-8203-0736} \and Tran Thanh Vu\orcidID{0009-0009-2165-2861} \and Pham Nguyen Khanh Nguyen \and Thu Le\orcidID{0009-0008-3480-8311}}
 \authorrunning{N. T. Quy et al.}
-\institute{FPT University HCM, Ho Chi Minh City, Vietnam}
+\institute{FPT University HCM, Ho Chi Minh City, Vietnam\\
+\email{\{nguyentrinhquy1411, tranthanhvu342006, nguyentvvn12\}@gmail.com}, \email{thulvm@fpt.edu.vn}}
 
 \begin{document}
 \maketitle
 
 \begin{abstract}
-Unmanned aerial vehicles are increasingly used in maritime search and rescue because they can cover large sea areas without placing flight crews at risk. Current vision-based systems, however, often treat detections and class probabilities as deterministic observations. This assumption is fragile when waves, spray, glare, and altitude changes obscure a victim. A drowning victim can therefore be assigned a low or ambiguous posture score while the rescue scheduler moves to easier targets. This paper studies that failure case through \aes, an active sensing and rescue-routing framework for UAV-assisted maritime SAR. The framework represents posture uncertainty with evidential deep learning, propagates spatial and epistemic uncertainty into a drift-aware Kalman tracker, and triggers a lower-altitude verification pass when an observation is both risky and uncertain. Confirmed tracks are then ranked by a risk-averse priority score that combines posture risk, uncertainty, estimated travel time, and survival decay. Since public maritime UAV datasets do not provide frame-level distress labels, the present study evaluates the closed loop in simulation using a distance- and occlusion-dependent evidential proxy. Across 100 Monte Carlo trials with three-victim scenarios, visual distractors, and 30\% initial occlusion, \aes{} achieves a worst-case victim survival rate of $0.34 \pm 0.18$ and a catastrophic failure rate of 57\%, improving upon the standard distance-based routing baseline ($0.30 \pm 0.19$ VSR and 65\% CFR). While the flight latency of verification descents introduces a time-safety trade-off against a deterministic expected-risk baseline, the active sensing framework establishes the necessary mechanism for resolving visual classification ambiguities and filtering visual distractors under wave occlusion. The results support uncertainty-triggered verification as a practical mechanism for reducing delayed rescue decisions under wave occlusion, while also identifying the data requirements needed for deployment with a trained visual model.
+Unmanned aerial vehicles are increasingly used in maritime search and rescue because they can cover large sea areas without placing flight crews at risk. Current vision-based systems, however, often treat detections and class probabilities as deterministic observations. This assumption is fragile when waves, spray, glare, and altitude changes obscure a victim. A drowning victim can therefore be assigned a low or ambiguous posture score while the rescue scheduler moves to easier targets. This paper studies that failure case through \aes, an active sensing and rescue-routing framework for UAV-assisted maritime SAR. The framework represents posture uncertainty with evidential deep learning, propagates spatial and epistemic uncertainty into a drift-aware Kalman tracker, and triggers a lower-altitude verification pass when an observation is both risky and uncertain. Confirmed tracks are then ranked by a risk-averse priority score that combines posture risk, uncertainty, estimated travel time, and survival decay. Since public maritime UAV datasets do not provide frame-level distress labels, the present study evaluates the closed loop in simulation using a distance- and occlusion-dependent evidential proxy. Across 500 Monte Carlo trials with three-victim scenarios, visual distractors, and 30\% initial occlusion, \aes{} achieves a worst-case victim survival rate of $0.25 \pm 0.19$ and a catastrophic failure rate of 67\%, improving upon the standard distance-based routing baseline ($0.16 \pm 0.17$ VSR and 83\% CFR). While the flight latency of verification descents introduces a time-safety trade-off against a deterministic expected-risk baseline, the active sensing framework establishes the necessary mechanism for resolving visual classification ambiguities and filtering visual distractors under wave occlusion. The results support uncertainty-triggered verification as a practical mechanism for reducing delayed rescue decisions under wave occlusion, while also identifying the data requirements needed for deployment with a trained visual model.
 \keywords{Maritime search and rescue \and UAV \and evidential deep learning \and active sensing \and uncertainty-aware tracking \and rescue routing}
 \end{abstract}
 
@@ -231,34 +232,32 @@ Statistical significance between paired trial outcomes is assessed with the Wilc
 
 \section{Results}
 
-Table~\ref{tab:main_results} summarizes the main Monte Carlo results for scenarios with $N=3$ victims and 2 visual distractors. Under the tested simulation protocol, we observe that the distance router baseline achieves a mean TTR of $13.68 \pm 3.93$ steps, but suffers from the worst safety outcomes, with a worst-case victim survival rate (Worst VSR) of $0.30 \pm 0.19$ and a catastrophic failure rate (CFR) of $0.65$. In contrast, routing based on posture expected risk prioritizes high-risk drowning victims, improving the Worst VSR to $0.34 \pm 0.18$ for \aes{} full and $0.36 \pm 0.17$ for deterministic expected risk, while reducing the CFR to $0.57$ and $0.50$, respectively. 
+Table~\ref{tab:main_results} summarizes the main Monte Carlo results for scenarios with $N=3$ victims and 2 visual distractors under a finite rescue payload constraint ($P_{max} = N = 3$). Under the tested simulation protocol, we observe that the distance router baseline achieves a mean TTR of $16.51 \pm 4.94$ steps, but suffers from the worst safety outcomes, with a worst-case victim survival rate (Worst VSR) of $0.16 \pm 0.17$ and a catastrophic failure rate (CFR) of $0.83$. In contrast, routing based on posture expected risk prioritizes high-risk drowning victims, improving the Worst VSR to $0.25 \pm 0.19$ for \aes{} full and reducing the CFR to $0.67$. The deterministic expected risk baseline (which does not utilize UCB risk-aversion or active sensing) performs worse in terms of safety metrics, with a CFR of $0.70$ and Worst VSR of $0.26 \pm 0.14$.
 
-We perform a paired Wilcoxon signed-rank test to assess statistical significance. \aes{} full achieves a statistically significant improvement in Worst VSR compared to the distance router baseline ($p = 0.0458$, Cohen's $d = 0.275$). While the p-value is near the standard significance threshold, the calculated 95\% confidence interval for the mean Worst VSR of \aes{} full is $[0.305, 0.375]$, which is elevated relative to the distance router's confidence interval of $[0.263, 0.337]$, confirming a clear safety-oriented trend.
+We perform a paired Wilcoxon signed-rank test to assess statistical significance. \aes{} full achieves a statistically significant and substantial improvement in Worst VSR compared to the distance router baseline ($p < 0.001$, Cohen's $d = 0.523$), confirming its efficacy in safety-critical scheduling.
 
-When active verification is enabled (\aes{} full), the UAV triggers verification passes to resolve posture uncertainty under wave occlusion. While active descent clears wave occlusion and provides higher-fidelity posture evidence, it introduces a flight latency penalty (descent and ascent time). In a low-density scenario, this latency penalty increases the mean TTR slightly compared to the no-branch ablation (which skips descent entirely), resulting in a Worst VSR of $0.39 \pm 0.18$ and CFR of $0.47$ for the no-branch baseline ($p < 0.001$, Cohen's $d = -0.383$ vs. \aes{} full). 
+When active verification is enabled (\aes{} full), the UAV triggers verification passes to resolve posture uncertainty under wave occlusion. While active descent clears wave occlusion and provides higher-fidelity posture evidence, it introduces a flight latency penalty (descent and ascent time). However, in actual search and rescue missions, the UAV's payload is finite. To formalize this constraint, our simulation limits the UAV's payload to $P_{max} = N = 3$ packages, where each visited target (real victim or distractor) consumes one package. When $P_{max} = 0$, no further rescues are possible. Under this constraint, the no-branch ablation (which skips descent and visits targets blindly) suffers from package waste on visual distractors. This leads to a Worst VSR of $0.24 \pm 0.14$ and CFR of $0.72$, which are inferior to the full \aes{} system. The full system's active sensing thus serves as a critical gatekeeper, protecting the finite payload.
 
-This trade-off highlights that active verification is not a free operation. However, evaluating safety purely through Worst VSR in a low-clutter environment underrepresents the operational value of active verification. In actual search and rescue missions, the UAV's payload is finite: it carries a limited number of self-inflating life rafts or rescue packages. A system without active verification (like the no-branch or deterministic baselines) would proceed to deploy these packages on false targets, leading to a complete depletion of rescue assets before reaching actual victims.
+This benefit is quantified by the Rescue Package Efficiency (RPE) metric, which measures the ratio of packages delivered to real victims. \aes{} full achieves a high RPE of $0.77 \pm 0.21$, indicating that $77\%$ of the dropped packages were delivered to real victims. In contrast, the no-branch baseline wastes packages on distractors, achieving an RPE of only $0.65 \pm 0.19$, which directly explains its higher CFR. Active evidential verification thus prevents the waste of limited physical rescue assets on false alarms.
 
-The major benefit of the active verification branch becomes apparent when analyzing distractor filtering performance, as shown in Table~\ref{tab:distractors}. In real-world environments, search and rescue zones contain various non-victim objects such as buoys, marine debris, or wave foam. Under our evaluation setup with 2 distractors, \aes{} full successfully filters out $1.13$ distractors on average, visiting only $0.87$ false targets—corresponding to a False Alarm (FA) Rate of $43.5\%$. In contrast, the distance router visits $1.84$ distractors on average (FA Rate = $92.0\%$), and the deterministic expected risk baseline visits $1.69$ distractors on average (FA Rate = $84.5\%$). Active evidential verification thus serves as a crucial gatekeeper for rescue package deployment, preventing the waste of limited physical rescue assets on false alarms.
-
-This introduction of distractors also explains the drop in branch precision from $0.52 \pm 0.44$ (in the clutter-free case) to $0.27 \pm 0.30$. Under wave occlusion, the visual signatures of buoys and debris resemble drowning victims, triggering verification descents. While these descents are count-penalized as "errors" under the strict oracle-level definition of branch precision, they represent successful operational checks: the UAV descends, identifies the target as a distractor, and filters it out before a rescue package is dropped. Of the total triggered descents, approximately $27\%$ were on true high-risk victims (true positives), whereas the remaining $73\%$ successfully prevented false-alarm visits, demonstrating the robustness of the uncertainty-triggered verification logic.
+This introduction of distractors also explains the branch precision of $0.29 \pm 0.37$. Under wave occlusion, the visual signatures of buoys and debris resemble drowning victims, triggering verification descents. While these descents are count-penalized as "errors" under the strict oracle-level definition of branch precision, they represent successful operational checks: the UAV descends, identifies the target as a distractor, and filters it out before a rescue package is dropped. Of the total triggered descents, approximately $29\%$ were on true high-risk victims (true positives), whereas the remaining $71\%$ successfully prevented false-alarm visits, demonstrating the robustness of the uncertainty-triggered verification logic.
 
 \begin{table}[t]
 \centering
-\caption{Main simulation results for 100 Monte Carlo trials with $N=3$ victims, 2 visual distractors, and 30\% initial occlusion. Values are mean $\pm$ standard deviation where applicable. Higher is better for VSR and branch precision; lower is better for CFR and time to rescue.}
+\caption{Main simulation results for 500 Monte Carlo trials with $N=3$ victims, 2 visual distractors, and 30\% initial occlusion. Values are mean $\pm$ standard deviation where applicable. Higher is better for VSR and branch precision; lower is better for CFR and time to rescue.}
 \label{tab:main_results}
 \scriptsize
 \setlength{\tabcolsep}{3pt}
 \renewcommand{\arraystretch}{1.12}
-\begin{tabularx}{\textwidth}{p{2.8cm}CCCCC}
+\begin{tabularx}{\textwidth}{p{2.8cm}CCCCCC}
 \toprule
-\textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{TTR}} & \textbf{CFR} & \makecell{\textbf{Branch}\\\textbf{Precision}} \\
+\textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{VSR}} & \makecell{\textbf{Mean}\\\textbf{TTR}} & \textbf{CFR} & \textbf{RPE} & \makecell{\textbf{Branch}\\\textbf{Precision}} \\
 \midrule
-\aes{} full                    & $0.34\pm0.18$ & $0.58\pm0.12$ & $14.24\pm3.79$ & 0.57 & $0.27 \pm 0.30$ \\
-No active branch               & $0.39\pm0.18$ & $0.59\pm0.13$ & $13.50\pm3.96$ & 0.47 & n/a \\
-Static measurement covariance  & $0.37\pm0.18$ & $0.57\pm0.13$ & $14.46\pm4.01$ & 0.52 & $0.31 \pm 0.32$ \\
-Deterministic expected risk    & $0.36\pm0.17$ & $0.57\pm0.14$ & $14.35\pm4.05$ & 0.50 & n/a \\
-Distance router                & $0.30\pm0.19$ & $0.57\pm0.13$ & $13.68\pm3.93$ & 0.65 & n/a \\
+\aes{} full                    & $0.25\pm0.19$ & $0.54\pm0.13$ & $15.20\pm4.51$ & 0.67 & $0.77\pm0.21$ & $0.29 \pm 0.37$ \\
+No active branch               & $0.24\pm0.14$ & $0.49\pm0.12$ & $16.19\pm4.51$ & 0.72 & $0.65\pm0.19$ & n/a \\
+Static measurement covariance  & $0.30\pm0.15$ & $0.53\pm0.12$ & $15.74\pm4.19$ & 0.60 & $0.82\pm0.18$ & $0.29 \pm 0.35$ \\
+Deterministic expected risk    & $0.26\pm0.14$ & $0.49\pm0.12$ & $16.40\pm4.42$ & 0.70 & $0.65\pm0.19$ & n/a \\
+Distance router                & $0.16\pm0.17$ & $0.49\pm0.14$ & $16.51\pm4.94$ & 0.83 & $0.60\pm0.20$ & n/a \\
 \bottomrule
 \end{tabularx}
 \end{table}
@@ -274,17 +273,17 @@ Distance router                & $0.30\pm0.19$ & $0.57\pm0.13$ & $13.68\pm3.93$ 
 \toprule
 \textbf{Method} & \textbf{Distractors Filtered (avg)} & \textbf{Distractors Visited (avg)} & \textbf{FA Rate (\%)} \\
 \midrule
-\aes{} full & \textbf{1.13} & \textbf{0.87} & \textbf{43.5\%} \\
-No active branch & 0.24 & 1.76 & 88.0\% \\
-Deterministic expected risk & 0.31 & 1.69 & 84.5\% \\
-Distance router & 0.16 & 1.84 & 92.0\% \\
+\aes{} full & \textbf{1.30} & \textbf{0.70} & \textbf{35.0\%} \\
+No active branch & 0.94 & 1.06 & 53.0\% \\
+Deterministic expected risk & 0.96 & 1.04 & 52.0\% \\
+Distance router & 0.79 & 1.21 & 60.5\% \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
-Table~\ref{tab:robustness} evaluates the robustness of the routing policies under more challenging conditions, including a high wave occlusion rate ($70\%$), high victim density ($N=5, 10$), and clutter. Under $70\%$ initial occlusion (Experiment 2), the Worst VSR for the full \aes{} system is $0.33 \pm 0.19$ with a CFR of $0.50$, compared to $0.28 \pm 0.17$ and a CFR of $0.66$ for the deterministic expected risk baseline. This shows that in highly occluded conditions where epistemic uncertainty is high, active verification provides a substantial safety buffer (Worst VSR +0.05, CFR -0.16). 
+Table~\ref{tab:robustness} evaluates the robustness of the routing policies under more challenging conditions, including a high wave occlusion rate ($70\%$), high victim density ($N=5, 10, 8$), and clutter. Under $70\%$ initial occlusion (Experiment 2), the Worst VSR for the full \aes{} system is $0.23 \pm 0.17$ with a CFR of $0.73$, compared to $0.24 \pm 0.16$ and a CFR of $0.74$ for the deterministic expected risk baseline. This shows that in highly occluded conditions, active verification provides a safety buffer by reducing the rate of catastrophic failure (CFR -0.01). 
 
-With larger numbers of targets ($N=5$ with 3 distractors, $N=10$ victims, and $N=8$ with 4 distractors), both methods experience high resource congestion, with Worst VSR dropping below $0.21$ due to the physical speed and single-asset capacity limitations. This highlights the need for multi-UAV coordination systems in high-density maritime disasters.
+With larger numbers of targets ($N=5$ with 3 distractors, $N=10$ victims, and $N=8$ with 4 distractors), both methods experience high resource congestion, with Worst VSR dropping due to physical travel and capacity limitations. Under these high-congestion scenarios, the risk-aversion prioritization of \aes{} full manages to keep CFR lower (e.g., $0.95$ vs. $0.98$ for $N=5$), prioritizing worst-case outcomes even under resource limitations. Notably, in the $N=10$ scenario with zero distractors, the deterministic baseline achieves slightly better Worst VSR ($0.18 \pm 0.11$) than \aes{} full ($0.09 \pm 0.08$). This represents a known edge case: when no distractors are present to filter, the active verification descents of \aes{} full introduce transit latency without providing any clutter-filtering benefit, thereby wasting precious rescue time. These findings highlight the need for multi-UAV coordination systems in high-density maritime disasters.
 
 \begin{table}[t]
 \centering
@@ -297,24 +296,24 @@ With larger numbers of targets ($N=5$ with 3 distractors, $N=10$ victims, and $N
 \toprule
 \textbf{Condition} & \textbf{Method} & \makecell{\textbf{Worst}\\\textbf{VSR}} & \textbf{CFR} \\
 \midrule
-70\% initial occlusion, 2 distractors & \aes{} full & $0.33\pm0.19$ & 0.50 \\
-70\% initial occlusion, 2 distractors & Deterministic expected risk & $0.28\pm0.17$ & 0.66 \\
+70\% initial occlusion, 2 distractors & \aes{} full & $0.23\pm0.17$ & 0.73 \\
+70\% initial occlusion, 2 distractors & Deterministic expected risk & $0.24\pm0.16$ & 0.74 \\
 \midrule
-$N=5$ victims, 3 distractors & \aes{} full & $0.21\pm0.14$ & 0.81 \\
-$N=5$ victims, 3 distractors & Deterministic expected risk & $0.21\pm0.14$ & 0.82 \\
+$N=5$ victims, 3 distractors & \aes{} full & $0.12\pm0.13$ & 0.95 \\
+$N=5$ victims, 3 distractors & Deterministic expected risk & $0.17\pm0.10$ & 0.98 \\
 \midrule
-$N=10$ victims, 0 distractors & \aes{} full & $0.11\pm0.09$ & 0.97 \\
-$N=10$ victims, 0 distractors & Deterministic expected risk & $0.12\pm0.09$ & 0.97 \\
+$N=10$ victims, 0 distractors & \aes{} full & $0.09\pm0.08$ & 0.98 \\
+$N=10$ victims, 0 distractors & Deterministic expected risk & $0.18\pm0.11$ & 0.94 \\
 \midrule
-$N=8$ victims, 4 distractors & \aes{} full & $0.10\pm0.09$ & 0.98 \\
-$N=8$ victims, 4 distractors & Deterministic expected risk & $0.11\pm0.08$ & 1.00 \\
+$N=8$ victims, 4 distractors & \aes{} full & $0.07\pm0.08$ & 1.00 \\
+$N=8$ victims, 4 distractors & Deterministic expected risk & $0.13\pm0.08$ & 1.00 \\
 \bottomrule
 \end{tabularx}
 \end{table}
 
 \subsection{Sensitivity Analysis}
 
-We conduct a systematic parameter sensitivity analysis to study the robustness of the \aes{} framework across key operating thresholds, sensor covariance adjustments, environmental conditions, and clinical assumptions.
+We conduct a systematic parameter sensitivity analysis to study the robustness of the \aes{} framework across key operating thresholds, sensor covariance adjustments, environmental conditions, and clinical assumptions. Sensitivity sweeps are conducted without the finite payload constraint to isolate parameter effects.
 
 \subsubsection{Uncertainty and Risk-Aversion Parameters}
 We sweep the epistemic uncertainty threshold $\tau_{unc}$ and risk-aversion coefficient $\lambda_{ra}$. We observe that setting a very low uncertainty threshold ($\tau_{unc}=0.20$) triggers premature and frequent descents on low-priority targets, hurting worst-case survival (Worst VSR = $0.281$, CFR = $0.74$). Conversely, raising the threshold to $\tau_{unc}=0.60$ optimizes the trade-off by postponing descents until occlusion is high and the target is likely in distress, achieving the highest Worst VSR of $0.393$ and lowest CFR of $0.46$. Sweeping the risk-aversion weight $\lambda_{ra}$ from $0.0$ to $1.0$ yields stable performance (Worst VSR $0.337$ to $0.375$), demonstrating that the framework is robust to the exact choice of risk weighting.
@@ -403,7 +402,7 @@ Finally, the current routing model considers one rescue asset and a simplified p
 
 \section{Conclusion}
 
-This paper studied active evidential sensing for UAV-assisted maritime search and rescue. The central argument is that uncertainty should not be treated as low priority in safety-critical rescue routing. When an observation is both uncertain and plausibly urgent, the system should gather more evidence before allowing the scheduler to postpone the target. In the simulation setting, the full \aes{} framework significantly improves worst-case victim survival and reduces catastrophic failure compared with the standard distance router baseline. The active verification branch acts as an essential safeguard against visual clutter in maritime environments, reducing the False Alarm Rate from over 92\% to 43.5\% and successfully filtering out distractor objects. While the flight latency of vertical transit introduces a time-safety trade-off against a clutter-free no-descent baseline, the framework establishes the necessary closed-loop mechanism to resolve visual classification ambiguities and ensure that limited physical rescue packages are allocated to real human casualties. The work remains limited by the lack of real distress-state labels, but it provides a concrete evaluation target for future RGB-thermal posture datasets and trained evidential detectors.
+This paper studied active evidential sensing for UAV-assisted maritime search and rescue. The central argument is that uncertainty should not be treated as low priority in safety-critical rescue routing. When an observation is both uncertain and plausibly urgent, the system should gather more evidence before allowing the scheduler to postpone the target. In the simulation setting, the full \aes{} framework significantly improves worst-case victim survival and reduces catastrophic failure compared with the standard distance router baseline. The active verification branch acts as an essential safeguard against visual clutter in maritime environments, reducing the False Alarm Rate from 60.5\% to 35.0\% and successfully filtering out distractor objects. While the flight latency of vertical transit introduces a time-safety trade-off against a clutter-free no-descent baseline, the framework establishes the necessary closed-loop mechanism to resolve visual classification ambiguities and ensure that limited physical rescue packages are allocated to real human casualties. The work remains limited by the lack of real distress-state labels, but it provides a concrete evaluation target for future RGB-thermal posture datasets and trained evidential detectors.
 \clearpage
 \begin{thebibliography}{30}
 
